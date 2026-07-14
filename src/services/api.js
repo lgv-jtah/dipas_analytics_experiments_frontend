@@ -60,6 +60,10 @@ export const getStanceEvaluations = (params = {}) => {
   return request(`/evaluations/stances${qs ? `?${qs}` : ''}`)
 }
 
+// Dataset
+export const getCurrentModel = () =>
+  request('/dataset/model')
+
 // Stats
 export const getEvaluationStats = () =>
   request('/evaluations/stats')

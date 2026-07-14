@@ -64,6 +64,23 @@
       </div>
     </div>
 
+    <!-- Current model -->
+    <div class="settings-section">
+      <HhText tag="h2" variant="subheading" class="settings-section__title">Current Model</HhText>
+      <HhText tag="p" variant="body" color="secondary" class="settings-section__desc">
+        The model currently used by the backend for evaluation.
+      </HhText>
+
+      <div class="test-row">
+        <HhButton variant="secondary" size="md" :disabled="modelLoading" @click="fetchModel">
+          {{ modelLoading ? 'Loading…' : 'Fetch model' }}
+        </HhButton>
+        <span v-if="modelResult" class="test-result" :class="`test-result--${modelResult.type}`">
+          {{ modelResult.message }}
+        </span>
+      </div>
+    </div>
+
     <!-- Saved confirmation toast -->
     <Teleport to="body">
       <Transition name="toast">
@@ -82,6 +99,7 @@ import PageHeader from '../components/molecules/PageHeader.vue'
 import HhText from '../components/atoms/HhText.vue'
 import HhButton from '../components/atoms/HhButton.vue'
 import { useBackendUrl } from '../composables/useBackendUrl.js'
+import { getCurrentModel } from '../services/api.js'
 
 const { backendUrl, defaultUrl, setBackendUrl, resetBackendUrl } = useBackendUrl()
 
@@ -119,6 +137,22 @@ function reset() {
   resetBackendUrl()
   urlInput.value = defaultUrl
   testResult.value = null
+}
+
+const modelLoading = ref(false)
+const modelResult = ref(null)
+
+async function fetchModel() {
+  modelLoading.value = true
+  modelResult.value = null
+  try {
+    const data = await getCurrentModel()
+    modelResult.value = { type: 'success', message: data.model ?? JSON.stringify(data) }
+  } catch (err) {
+    modelResult.value = { type: 'error', message: err.message }
+  } finally {
+    modelLoading.value = false
+  }
 }
 
 async function testConnection() {
