@@ -81,6 +81,37 @@
       </div>
     </div>
 
+    <!-- Reset evaluations -->
+    <div class="settings-section">
+      <HhText tag="h2" variant="subheading" class="settings-section__title">Reset Evaluations</HhText>
+      <HhText tag="p" variant="body" color="secondary" class="settings-section__desc">
+        Permanently delete all evaluation results. This action cannot be undone.
+      </HhText>
+
+      <div v-if="!resetConfirming" class="test-row">
+        <HhButton variant="secondary" size="md" @click="resetConfirming = true">
+          Reset all data
+        </HhButton>
+      </div>
+
+      <div v-else class="reset-confirm">
+        <HhText tag="p" variant="body" color="secondary">
+          Are you sure? All evaluation data will be permanently deleted.
+        </HhText>
+        <div class="test-row">
+          <HhButton variant="primary" size="md" :disabled="resetLoading" class="reset-confirm__danger" @click="confirmReset">
+            {{ resetLoading ? 'Resetting…' : 'Yes, delete all data' }}
+          </HhButton>
+          <HhButton variant="ghost" size="md" :disabled="resetLoading" @click="resetConfirming = false">
+            Cancel
+          </HhButton>
+          <span v-if="resetResult" class="test-result" :class="`test-result--${resetResult.type}`">
+            {{ resetResult.message }}
+          </span>
+        </div>
+      </div>
+    </div>
+
     <!-- Saved confirmation toast -->
     <Teleport to="body">
       <Transition name="toast">
@@ -99,7 +130,7 @@ import PageHeader from '../components/molecules/PageHeader.vue'
 import HhText from '../components/atoms/HhText.vue'
 import HhButton from '../components/atoms/HhButton.vue'
 import { useBackendUrl } from '../composables/useBackendUrl.js'
-import { getCurrentModel } from '../services/api.js'
+import { getCurrentModel, resetEvaluations } from '../services/api.js'
 
 const { backendUrl, defaultUrl, setBackendUrl, resetBackendUrl } = useBackendUrl()
 
@@ -147,11 +178,29 @@ async function fetchModel() {
   modelResult.value = null
   try {
     const data = await getCurrentModel()
-    modelResult.value = { type: 'success', message: data.model ?? JSON.stringify(data) }
+    modelResult.value = { type: 'success', message: data.model_name ?? JSON.stringify(data) }
   } catch (err) {
     modelResult.value = { type: 'error', message: err.message }
   } finally {
     modelLoading.value = false
+  }
+}
+
+const resetConfirming = ref(false)
+const resetLoading = ref(false)
+const resetResult = ref(null)
+
+async function confirmReset() {
+  resetLoading.value = true
+  resetResult.value = null
+  try {
+    await resetEvaluations()
+    resetResult.value = { type: 'success', message: 'All evaluation data has been deleted.' }
+    resetConfirming.value = false
+  } catch (err) {
+    resetResult.value = { type: 'error', message: err.message }
+  } finally {
+    resetLoading.value = false
   }
 }
 
@@ -248,6 +297,20 @@ async function testConnection() {
 .test-result--success { color: var(--color-success, #1e8c45); }
 .test-result--warn    { color: var(--color-warning, #b45309); }
 .test-result--error   { color: var(--color-error,   #d93025); }
+
+/* Reset confirm block */
+.reset-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.reset-confirm__danger {
+  background: var(--color-error, #d93025);
+  border-color: var(--color-error, #d93025);
+}
+.reset-confirm__danger:hover:not(:disabled) {
+  filter: brightness(0.9);
+}
 
 /* Toast */
 .toast {

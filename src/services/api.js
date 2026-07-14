@@ -64,6 +64,9 @@ export const getStanceEvaluations = (params = {}) => {
 export const getCurrentModel = () =>
   request('/dataset/model')
 
+export const resetEvaluations = () =>
+  request('/evaluations/reset?confirm=true', { method: 'DELETE' })
+
 // Stats
 export const getEvaluationStats = () =>
   request('/evaluations/stats')
