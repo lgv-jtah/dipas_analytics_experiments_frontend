@@ -73,3 +73,8 @@ export const getEvaluationStats = () =>
 
 export const getTesterStats = (tester) =>
   request(`/evaluations/stats/${encodeURIComponent(tester)}`)
+
+export const getContributionsStats = (params = {}) => {
+  const qs = new URLSearchParams(params).toString()
+  return request(`/evaluations/contributions-stats${qs ? `?${qs}` : ''}`)
+}

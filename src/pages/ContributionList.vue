@@ -4,7 +4,7 @@
       title="Contributions"
       description="Select a contribution to review its AI-predicted key messages and stances."
       icon="contributions"
-      :badge="contributions.length ? String(contributions.length) : ''"
+      :badge="contributions.length ? `${fullyEvaluatedCount}/${contributions.length}` : ''"
     >
       <template #actions>
         <input
@@ -44,12 +44,64 @@
           @click="goToContribution(contribution.contribution_id)"
         >
           <div class="contribution-item__meta">
-            <HhBadge variant="navy" size="sm">#{{ contribution.contribution_id }}</HhBadge>
+            <div class="contribution-item__badges">
+              <HhBadge variant="navy" size="sm">#{{ contribution.contribution_id }}</HhBadge>
+              <HhBadge 
+                v-if="isFullyEvaluated(contribution.contribution_id)" 
+                variant="success" 
+                size="sm"
+              >
+                ✓ Fully Evaluated
+              </HhBadge>
+            </div>
             <HhIcon name="arrow-right" size="sm" class="contribution-item__arrow" />
           </div>
           <HhText tag="p" variant="body" class="contribution-item__text">
             {{ truncate(contribution.contribution_content, 200) }}
           </HhText>
+          
+          <!-- Evaluation Stats -->
+          <div v-if="getStats(contribution.contribution_id)" class="contribution-item__stats">
+            <div class="stat-group">
+              <HhText tag="span" variant="caption" color="secondary" class="stat-label">
+                Key Messages:
+              </HhText>
+              <div class="stat-progress">
+                <HhText tag="span" variant="caption" class="stat-value">
+                  {{ getStats(contribution.contribution_id).evaluated_key_messages_count }}/{{ getStats(contribution.contribution_id).key_messages_count }}
+                </HhText>
+                <div class="progress-bar">
+                  <div 
+                    class="progress-bar__fill" 
+                    :style="{ width: getProgressPercentage(
+                      getStats(contribution.contribution_id).evaluated_key_messages_count,
+                      getStats(contribution.contribution_id).key_messages_count
+                    ) + '%' }"
+                  ></div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="stat-group">
+              <HhText tag="span" variant="caption" color="secondary" class="stat-label">
+                Stances:
+              </HhText>
+              <div class="stat-progress">
+                <HhText tag="span" variant="caption" class="stat-value">
+                  {{ getStats(contribution.contribution_id).evaluated_stances_count }}/{{ getStats(contribution.contribution_id).stances_count }}
+                </HhText>
+                <div class="progress-bar">
+                  <div 
+                    class="progress-bar__fill" 
+                    :style="{ width: getProgressPercentage(
+                      getStats(contribution.contribution_id).evaluated_stances_count,
+                      getStats(contribution.contribution_id).stances_count
+                    ) + '%' }"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </template>
@@ -64,13 +116,14 @@ import PageHeader from '../components/molecules/PageHeader.vue'
 import HhText from '../components/atoms/HhText.vue'
 import HhIcon from '../components/atoms/HhIcon.vue'
 import HhBadge from '../components/atoms/HhBadge.vue'
-import { getContributions } from '../services/api.js'
+import { getContributions, getContributionsStats } from '../services/api.js'
 import { useEvaluator } from '../composables/useEvaluator.js'
 
 const router = useRouter()
 const { evaluator } = useEvaluator()
 
 const contributions = ref([])
+const contributionsStats = ref([])
 const loading = ref(true)
 const error = ref(false)
 const search = ref('')
@@ -84,6 +137,10 @@ const filteredContributions = computed(() => {
   )
 })
 
+const fullyEvaluatedCount = computed(() => {
+  return contributions.value.filter(c => isFullyEvaluated(c.contribution_id)).length
+})
+
 function truncate(text, max) {
   return text.length > max ? text.slice(0, max) + '…' : text
 }
@@ -92,9 +149,33 @@ function goToContribution(id) {
   router.push(`/evaluation/contributions/${id}`)
 }
 
+function getStats(contributionId) {
+  return contributionsStats.value.find(stat => stat.contribution_id === contributionId)
+}
+
+function isFullyEvaluated(contributionId) {
+  const stats = getStats(contributionId)
+  if (!stats) return false
+  
+  return stats.key_messages_count > 0 && 
+         stats.stances_count > 0 &&
+         stats.evaluated_key_messages_count === stats.key_messages_count &&
+         stats.evaluated_stances_count === stats.stances_count
+}
+
+function getProgressPercentage(evaluated, total) {
+  if (total === 0) return 0
+  return Math.round((evaluated / total) * 100)
+}
+
 onMounted(async () => {
   try {
-    contributions.value = await getContributions()
+    const [contributionsData, statsData] = await Promise.all([
+      getContributions(),
+      getContributionsStats(evaluator.value ? { evaluator: evaluator.value } : {})
+    ])
+    contributions.value = contributionsData
+    contributionsStats.value = statsData
   } catch {
     error.value = true
   } finally {
@@ -163,6 +244,13 @@ onMounted(async () => {
   justify-content: space-between;
   margin-bottom: var(--space-2);
 }
+
+.contribution-item__badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .contribution-item__arrow {
   color: var(--color-text-secondary);
   transition: transform var(--transition-fast);
@@ -175,6 +263,57 @@ onMounted(async () => {
 .contribution-item__text {
   color: var(--color-text-primary);
   margin: 0;
+}
+
+/* Contribution Stats */
+.contribution-item__stats {
+  display: flex;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.stat-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+.stat-label {
+  white-space: nowrap;
+  min-width: 100px;
+}
+
+.stat-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.stat-value {
+  min-width: 45px;
+  text-align: right;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 3px;
+  overflow: hidden;
+  max-width: 120px;
+}
+
+.progress-bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-accent) 0%, #4A90E2 100%);
+  transition: width var(--transition-fast);
+  border-radius: 3px;
 }
 
 /* States */
