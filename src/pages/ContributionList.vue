@@ -129,12 +129,40 @@ const error = ref(false)
 const search = ref('')
 
 const filteredContributions = computed(() => {
-  if (!search.value.trim()) return contributions.value
-  const q = search.value.toLowerCase()
-  return contributions.value.filter(c =>
-    String(c.contribution_id).includes(q) ||
-    c.contribution_content.toLowerCase().includes(q)
-  )
+  let result = contributions.value
+  
+  // Apply search filter
+  if (search.value.trim()) {
+    const q = search.value.toLowerCase()
+    result = result.filter(c =>
+      String(c.contribution_id).includes(q) ||
+      c.contribution_content.toLowerCase().includes(q)
+    )
+  }
+  
+  // Sort by evaluation status: highest progress incomplete first, then complete
+  return result.sort((a, b) => {
+    const aStats = getStats(a.contribution_id)
+    const bStats = getStats(b.contribution_id)
+    
+    // Handle contributions without stats - put them at the end
+    if (!aStats && !bStats) return 0
+    if (!aStats) return 1
+    if (!bStats) return -1
+    
+    const aComplete = isFullyEvaluated(a.contribution_id)
+    const bComplete = isFullyEvaluated(b.contribution_id)
+    
+    // Fully evaluated contributions go to the end
+    if (aComplete && !bComplete) return 1
+    if (!aComplete && bComplete) return -1
+    if (aComplete && bComplete) return 0  // Keep original order for complete ones
+    
+    // For incomplete: highest progress first (90% → 10% → 0%)
+    const aProgress = getCompletionPercentage(a.contribution_id)
+    const bProgress = getCompletionPercentage(b.contribution_id)
+    return bProgress - aProgress  // Descending order (highest first)
+  })
 })
 
 const fullyEvaluatedCount = computed(() => {
@@ -166,6 +194,15 @@ function isFullyEvaluated(contributionId) {
 function getProgressPercentage(evaluated, total) {
   if (total === 0) return 0
   return Math.round((evaluated / total) * 100)
+}
+
+function getCompletionPercentage(contributionId) {
+  const stats = getStats(contributionId)
+  if (!stats) return 0
+  const totalItems = stats.key_messages_count + stats.stances_count
+  const evaluatedItems = stats.evaluated_key_messages_count + stats.evaluated_stances_count
+  if (totalItems === 0) return 0
+  return Math.round((evaluatedItems / totalItems) * 100)
 }
 
 onMounted(async () => {
