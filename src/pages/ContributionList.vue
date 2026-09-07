@@ -53,6 +53,13 @@
               >
                 ✓ Fully Evaluated
               </HhBadge>
+              <HhBadge
+                v-if="getMissingStancesCount(contribution.contribution_id) > 0"
+                variant="warning"
+                size="sm"
+              >
+                ⚠ {{ getMissingStancesCount(contribution.contribution_id) }} need stances
+              </HhBadge>
             </div>
             <HhIcon name="arrow-right" size="sm" class="contribution-item__arrow" />
           </div>
@@ -96,6 +103,29 @@
                     :style="{ width: getProgressPercentage(
                       getStats(contribution.contribution_id).evaluated_stances_count,
                       getStats(contribution.contribution_id).stances_count
+                    ) + '%' }"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              v-if="getStats(contribution.contribution_id).added_key_messages_count > 0"
+              class="stat-group"
+            >
+              <HhText tag="span" variant="caption" color="secondary" class="stat-label">
+                Added KM Stances:
+              </HhText>
+              <div class="stat-progress">
+                <HhText tag="span" variant="caption" class="stat-value">
+                  {{ getStats(contribution.contribution_id).added_key_messages_count - getStats(contribution.contribution_id).added_key_messages_missing_stances_count }}/{{ getStats(contribution.contribution_id).added_key_messages_count }}
+                </HhText>
+                <div class="progress-bar">
+                  <div
+                    class="progress-bar__fill"
+                    :style="{ width: getProgressPercentage(
+                      getStats(contribution.contribution_id).added_key_messages_count - getStats(contribution.contribution_id).added_key_messages_missing_stances_count,
+                      getStats(contribution.contribution_id).added_key_messages_count
                     ) + '%' }"
                   ></div>
                 </div>
@@ -181,6 +211,10 @@ function getStats(contributionId) {
   return contributionsStats.value.find(stat => stat.contribution_id === contributionId)
 }
 
+function getMissingStancesCount(contributionId) {
+  return getStats(contributionId)?.added_key_messages_missing_stances_count || 0
+}
+
 function isFullyEvaluated(contributionId) {
   const stats = getStats(contributionId)
   if (!stats) return false
@@ -188,7 +222,8 @@ function isFullyEvaluated(contributionId) {
   return stats.key_messages_count > 0 && 
          stats.stances_count > 0 &&
          stats.evaluated_key_messages_count === stats.key_messages_count &&
-         stats.evaluated_stances_count === stats.stances_count
+         stats.evaluated_stances_count === stats.stances_count &&
+         stats.added_key_messages_missing_stances_count === 0
 }
 
 function getProgressPercentage(evaluated, total) {
@@ -199,8 +234,12 @@ function getProgressPercentage(evaluated, total) {
 function getCompletionPercentage(contributionId) {
   const stats = getStats(contributionId)
   if (!stats) return 0
-  const totalItems = stats.key_messages_count + stats.stances_count
-  const evaluatedItems = stats.evaluated_key_messages_count + stats.evaluated_stances_count
+  // Each evaluator-added key message counts as one item, considered
+  // "evaluated" once its comments have been stance-labeled (stance
+  // labeling is all-or-nothing, so missing count is enough to tell).
+  const totalItems = stats.key_messages_count + stats.stances_count + stats.added_key_messages_count
+  const evaluatedItems = stats.evaluated_key_messages_count + stats.evaluated_stances_count +
+    (stats.added_key_messages_count - stats.added_key_messages_missing_stances_count)
   if (totalItems === 0) return 0
   return Math.round((evaluatedItems / totalItems) * 100)
 }

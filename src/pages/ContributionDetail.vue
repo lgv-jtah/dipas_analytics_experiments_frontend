@@ -367,7 +367,12 @@
           v-for="(akm, akmIndex) in addedKeyMessages"
           :key="`added-${akm.id}`"
           class="km-block"
-          :class="{ 'km-block--expanded': expandedAddedKm === akmIndex }"
+          :class="{
+            'km-block--expanded': expandedAddedKm === akmIndex,
+            'km-block--evaluated': akm.stances?.length > 0,
+            'km-block--unevaluated': !akm.stances?.length
+          }"
+          :data-added-km-id="akm.id"
         >
           <!-- Key message header (clickable to expand) -->
           <div class="km-block__header" @click="toggleAddedKm(akmIndex)">
@@ -432,9 +437,108 @@
                 <!-- Show message if no stances or backend not updated -->
                 <div v-else class="stances-empty">
                   <HhText variant="caption" color="secondary">
-                    No stances loaded. This may be because the backend server needs to be restarted to load the new code.
+                    No stances labeled yet for this key message.
                   </HhText>
                 </div>
+
+                <!-- Edit / label stances action -->
+                <div class="add-km-stances-toggle">
+                  <HhButton
+                    variant="ghost"
+                    size="sm"
+                    @click="toggleEditAddedKmStances(akm)"
+                  >
+                    {{ editingAddedKmId === akm.id ? '− Cancel' : (akm.stances?.length ? '✎ Edit stances' : '+ Label stances') }}
+                  </HhButton>
+                  <HhText
+                    v-if="loadingComments && editingAddedKmId === akm.id"
+                    variant="caption"
+                    color="secondary"
+                  >
+                    Loading...
+                  </HhText>
+                </div>
+
+                <!-- Stance editing form -->
+                <Transition name="suggestion">
+                  <div v-if="editingAddedKmId === akm.id" class="add-km-stances-list">
+                    <div
+                      v-if="availableComments.length === 0 && !loadingComments"
+                      class="add-km-stances-empty"
+                    >
+                      <HhText variant="caption" color="secondary">
+                        No comments available. Expand key messages above to load stances first.
+                      </HhText>
+                    </div>
+
+                    <div
+                      v-for="comment in (addedKmStanceDrafts[akm.id] || [])"
+                      :key="`${comment.comment_text}_${comment.comment_index ?? 'null'}`"
+                      class="add-km-stance-item"
+                    >
+                      <div class="add-km-stance-content">
+                        <HhText tag="p" variant="body" class="add-km-stance-text">
+                          "{{ comment.comment_text }}"
+                        </HhText>
+
+                        <div class="add-km-stance-label-picker">
+                          <HhText variant="caption" color="secondary" class="label-picker-label">
+                            Stance:
+                          </HhText>
+                          <div class="label-picker__buttons">
+                            <HhButton
+                              variant="secondary"
+                              size="sm"
+                              :class="{ 'label-picker__button--active': comment.stance_label === 'in favor' }"
+                              @click="comment.stance_label = 'in favor'"
+                              :disabled="submittingAddedKmEdit[akm.id]"
+                            >
+                              👍 In Favor
+                            </HhButton>
+                            <HhButton
+                              variant="secondary"
+                              size="sm"
+                              :class="{ 'label-picker__button--active': comment.stance_label === 'neutral' }"
+                              @click="comment.stance_label = 'neutral'"
+                              :disabled="submittingAddedKmEdit[akm.id]"
+                            >
+                              ⚪ Neutral
+                            </HhButton>
+                            <HhButton
+                              variant="secondary"
+                              size="sm"
+                              :class="{ 'label-picker__button--active': comment.stance_label === 'ablehnung' }"
+                              @click="comment.stance_label = 'ablehnung'"
+                              :disabled="submittingAddedKmEdit[akm.id]"
+                            >
+                              👎 Against
+                            </HhButton>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="eval-form__footer">
+                      <HhButton
+                        variant="primary"
+                        size="sm"
+                        :loading="submittingAddedKmEdit[akm.id]"
+                        :disabled="!(addedKmStanceDrafts[akm.id] && addedKmStanceDrafts[akm.id].length)"
+                        @click="saveAddedKmStances(akm)"
+                      >
+                        Save
+                      </HhButton>
+                      <HhText
+                        v-if="addedKmEditSaveStatus[akm.id]"
+                        tag="span"
+                        variant="caption"
+                        :color="addedKmEditSaveStatus[akm.id] === 'saved' ? 'secondary' : 'accent'"
+                      >
+                        {{ addedKmEditSaveStatus[akm.id] === 'saved' ? 'Saved.' : 'Error saving. Try again.' }}
+                      </HhText>
+                    </div>
+                  </div>
+                </Transition>
               </div>
             </div>
           </Transition>
@@ -718,6 +822,13 @@ const availableComments = ref([])          // all comments from contribution
 const showStancesSelector = ref(false)     // toggle stance selector UI
 const loadingComments = ref(false)         // loading state for comments
 
+// Editing stances on already-saved added key messages (incl. older ones
+// created before stance labeling existed, which have zero stances)
+const editingAddedKmId = ref(null)         // id of AddedKeyMessage being edited, or null
+const addedKmStanceDrafts = reactive({})   // keyed by akm.id -> [{ comment_text, comment_index, stance_label }]
+const submittingAddedKmEdit = reactive({}) // keyed by akm.id -> bool
+const addedKmEditSaveStatus = reactive({}) // keyed by akm.id -> null | 'saved' | 'error'
+
 // Navigation & Progress - For FAB and next contribution logic
 const allContributionsStats = ref([])
 
@@ -759,7 +870,10 @@ const totalItemsCount = computed(() => {
   const stanceCount = keyMessages.value.reduce((sum, km) => {
     return sum + (km.stances?.length || 0)
   }, 0)
-  return kmCount + stanceCount
+  // Each evaluator-added key message counts as one item, considered
+  // "evaluated" once its comments have been stance-labeled.
+  const addedKmCount = addedKeyMessages.value.length
+  return kmCount + stanceCount + addedKmCount
 })
 
 const evaluatedItemsCount = computed(() => {
@@ -780,8 +894,11 @@ const evaluatedItemsCount = computed(() => {
       })
     }
   })
+
+  // Count added key messages that have been stance-labeled
+  const addedKmEvaluated = addedKeyMessages.value.filter(akm => akm.stances?.length > 0).length
   
-  return kmEvaluated + stancesEvaluated
+  return kmEvaluated + stancesEvaluated + addedKmEvaluated
 })
 
 const contributionCompletionPercentage = computed(() => {
@@ -796,8 +913,9 @@ const nextContributionId = computed(() => {
   
   // Helper to calculate progress percentage
   const getProgress = (stat) => {
-    const totalItems = stat.key_messages_count + stat.stances_count
-    const evaluatedItems = stat.evaluated_key_messages_count + stat.evaluated_stances_count
+    const totalItems = stat.key_messages_count + stat.stances_count + stat.added_key_messages_count
+    const evaluatedItems = stat.evaluated_key_messages_count + stat.evaluated_stances_count +
+      (stat.added_key_messages_count - stat.added_key_messages_missing_stances_count)
     if (totalItems === 0) return 100 // No items = complete
     return (evaluatedItems / totalItems) * 100
   }
@@ -824,8 +942,9 @@ const remainingContributionsCount = computed(() => {
   if (!evaluator.value || allContributionsStats.value.length === 0) return 0
   
   return allContributionsStats.value.filter(stat => {
-    const totalItems = stat.key_messages_count + stat.stances_count
-    const evaluatedItems = stat.evaluated_key_messages_count + stat.evaluated_stances_count
+    const totalItems = stat.key_messages_count + stat.stances_count + stat.added_key_messages_count
+    const evaluatedItems = stat.evaluated_key_messages_count + stat.evaluated_stances_count +
+      (stat.added_key_messages_count - stat.added_key_messages_missing_stances_count)
     return evaluatedItems < totalItems && totalItems > 0
   }).length
 })
@@ -868,6 +987,23 @@ function scrollToFirstUnevaluated() {
           }
         }
       }
+    }
+  }
+  
+  // Check evaluator-added key messages missing stances (includes older ones
+  // created before stance labeling existed)
+  for (let i = 0; i < addedKeyMessages.value.length; i++) {
+    const akm = addedKeyMessages.value[i]
+    if (!akm.stances || akm.stances.length === 0) {
+      expandedAddedKm.value = i
+      toggleEditAddedKmStances(akm)
+      const element = document.querySelector(`[data-added-km-id="${akm.id}"]`)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        element.classList.add('highlight-flash')
+        setTimeout(() => element.classList.remove('highlight-flash'), 2000)
+      }
+      return true
     }
   }
   
@@ -1070,6 +1206,76 @@ watch(showAddKmForm, async (isOpen) => {
     await loadAvailableComments()
   }
 })
+
+// --- Edit stances on an already-saved added key message ---
+/**
+ * Build the working draft of stance labels for an added key message,
+ * pre-filling from any stances it already has and defaulting the rest
+ * to 'neutral'. Covers both older added key messages that predate the
+ * stance-labeling feature (zero stances) and ones that already have
+ * some stances the evaluator wants to revise.
+ */
+function buildStanceDraftForAddedKm(akm) {
+  const existingByKey = new Map()
+  for (const s of akm.stances || []) {
+    existingByKey.set(`${s.comment_text}__${s.comment_index ?? 'null'}`, s.stance_label)
+  }
+  return availableComments.value.map(c => ({
+    comment_text: c.comment_text,
+    comment_index: c.comment_index,
+    stance_label: existingByKey.get(`${c.comment_text}__${c.comment_index ?? 'null'}`) || 'neutral',
+  }))
+}
+
+async function toggleEditAddedKmStances(akm) {
+  if (editingAddedKmId.value === akm.id) {
+    editingAddedKmId.value = null
+    return
+  }
+  if (availableComments.value.length === 0) {
+    await loadAvailableComments()
+  }
+  addedKmStanceDrafts[akm.id] = buildStanceDraftForAddedKm(akm)
+  addedKmEditSaveStatus[akm.id] = null
+  editingAddedKmId.value = akm.id
+}
+
+async function saveAddedKmStances(akm) {
+  const draft = addedKmStanceDrafts[akm.id]
+  if (!draft || draft.length === 0) return
+
+  submittingAddedKmEdit[akm.id] = true
+  addedKmEditSaveStatus[akm.id] = null
+  try {
+    const payload = {
+      contribution_id: contributionId,
+      key_message: akm.key_message,
+      key_message_type: akm.key_message_type,
+      key_message_sentence: akm.key_message_sentence || null,
+      evaluator: evaluator.value || akm.evaluator || null,
+      stances: draft.map(c => ({
+        comment_text: c.comment_text,
+        comment_index: c.comment_index,
+        stance_label: c.stance_label,
+      })),
+    }
+    const saved = await submitAddedKeyMessage(payload)
+
+    // Replace the item in-place with the updated record from the backend
+    const idx = addedKeyMessages.value.findIndex(k => k.id === akm.id)
+    if (idx !== -1) {
+      addedKeyMessages.value[idx] = saved
+    }
+
+    addedKmEditSaveStatus[akm.id] = 'saved'
+    editingAddedKmId.value = null
+  } catch (err) {
+    console.error('Failed to save stances for added key message:', err)
+    addedKmEditSaveStatus[akm.id] = 'error'
+  } finally {
+    submittingAddedKmEdit[akm.id] = false
+  }
+}
 
 // --- Submit evaluator-added key message ---
 async function submitNewKmEvaluation() {
