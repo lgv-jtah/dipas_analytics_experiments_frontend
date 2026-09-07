@@ -1064,15 +1064,28 @@ async function loadStances(km) {
         for (const ev of existing) {
           const matchingKm = keyMessages.value.find(k => k.key_message === ev.key_message)
           if (!matchingKm || !matchingKm.stances) continue
-          
-          // STRICT MATCHING: Match by exact index or both NULL
-          const matchingStance = matchingKm.stances.find(s => {
-            const textMatches = s.comment_text === ev.comment_text
-            const indexMatches = (s.index === ev.comment_index) || 
-                                 (s.index === null && ev.comment_index === null)
-            return textMatches && indexMatches
-          })
-          
+
+          // Exact match: same comment text and same index (covers current,
+          // post-duplicate-fix evaluations where comment_index is a real number).
+          let matchingStance = matchingKm.stances.find(s =>
+            s.comment_text === ev.comment_text && s.index === ev.comment_index
+          )
+
+          // Legacy fallback: evaluations saved before comment_index tracking
+          // existed have comment_index = null. Since s.index is always a
+          // real number (never null), those can never satisfy an exact
+          // match. If exactly one AI-predicted stance in this key message
+          // has this comment_text, it's unambiguous - match it despite the
+          // missing index. If there's more than one candidate (true
+          // duplicate comments within the same key message), leave it
+          // unmatched rather than guess.
+          if (!matchingStance && ev.comment_index === null) {
+            const candidates = matchingKm.stances.filter(s => s.comment_text === ev.comment_text)
+            if (candidates.length === 1) {
+              matchingStance = candidates[0]
+            }
+          }
+
           if (matchingStance) {
             const k = stanceKey(matchingKm, matchingStance, matchingStance.index)
             if (stanceEvaluations[k] !== undefined) {
