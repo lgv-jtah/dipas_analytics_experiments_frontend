@@ -31,7 +31,7 @@ export const getKeyMessages = (contributionId) =>
 
 // Stances
 export const getStances = (contributionId, keyMessage) =>
-  request(`/contributions/${contributionId}/key-messages/${encodeURIComponent(keyMessage)}/stances`)
+  request(`/contributions/${contributionId}/stances?key_message=${encodeURIComponent(keyMessage)}`)
 
 // Evaluations – key messages
 export const submitKeyMessageEvaluation = (payload) =>
