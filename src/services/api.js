@@ -60,6 +60,27 @@ export const getStanceEvaluations = (params = {}) => {
   return request(`/evaluations/stances${qs ? `?${qs}` : ''}`)
 }
 
+// Votes vs. comment stance (descriptive only)
+export const getVotesStanceSnapshotInfo = () =>
+  request('/votes-stance/snapshot-info')
+
+export const getVotesStanceOverview = (params = {}) => {
+  // Drop empty params so e.g. model/evaluator are only sent when set.
+  const clean = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== null && v !== undefined && v !== '')
+  )
+  const qs = new URLSearchParams(clean).toString()
+  return request(`/votes-stance/overview${qs ? `?${qs}` : ''}`)
+}
+
+export const getContributionVotesStance = (contributionId, params = {}) => {
+  const clean = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== null && v !== undefined && v !== '')
+  )
+  const qs = new URLSearchParams(clean).toString()
+  return request(`/contributions/${contributionId}/votes-stance${qs ? `?${qs}` : ''}`)
+}
+
 // Dataset
 export const getCurrentModel = () =>
   request('/dataset/model')

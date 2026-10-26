@@ -28,6 +28,49 @@
         </HhText>
       </HhCard>
 
+      <!-- Votes vs. comment stance panel (descriptive only) -->
+      <HhCard v-if="votesStanceAvailable" :title="vsStrings.pageTitle" class="votes-stance-panel">
+        <div class="votes-stance-panel__controls">
+          <label class="votes-stance-panel__field">
+            <span class="votes-stance-panel__label">{{ vsStrings.sourceLabel }}</span>
+            <select v-model="vsSource" class="votes-stance-panel__select">
+              <option value="gold">{{ vsStrings.sourceGold }}</option>
+              <option value="live">{{ vsStrings.sourceLive }}</option>
+              <option value="model">{{ vsStrings.sourceModel }}</option>
+            </select>
+          </label>
+          <label v-if="vsSource === 'model'" class="votes-stance-panel__field">
+            <span class="votes-stance-panel__label">{{ vsStrings.modelLabel }}</span>
+            <select v-model="vsModel" class="votes-stance-panel__select">
+              <option v-for="m in vsModels" :key="m" :value="m">{{ m }}</option>
+            </select>
+          </label>
+        </div>
+        <div v-if="vsLoading" class="votes-stance-panel__state">
+          <HhText variant="caption" color="secondary">{{ vsStrings.loading }}</HhText>
+        </div>
+        <template v-else-if="vsPanel">
+          <VoteStanceBars
+            :votes="vsPanel.votes"
+            :comments="vsPanel.comments"
+            :snapshot-utc="vsPanel.snapshot_utc"
+            :strings="vsStrings"
+          />
+          <HhText
+            v-if="vsSource === 'live'"
+            tag="p"
+            variant="caption"
+            color="secondary"
+            class="votes-stance-panel__coverage"
+          >
+            {{ vsStrings.pairsVerified }}: {{ vsPanel.comments.live_pairs_verified }} /
+            {{ vsPanel.comments.live_pairs_total }}
+            · {{ vsPanel.comments.live_comments_partially_verified }}
+            {{ vsStrings.partiallyVerifiedComments }}
+          </HhText>
+        </template>
+      </HhCard>
+
       <!-- Contribution Progress Bar -->
       <div v-if="totalItemsCount > 0" class="contribution-progress">
         <div class="contribution-progress__header">
@@ -770,6 +813,7 @@ import HhBadge from '../components/atoms/HhBadge.vue'
 import HhButton from '../components/atoms/HhButton.vue'
 import HhVerdictPicker from '../components/atoms/HhVerdictPicker.vue'
 import HhTextarea from '../components/atoms/HhTextarea.vue'
+import VoteStanceBars from '../components/molecules/VoteStanceBars.vue'
 import {
   getContribution,
   getKeyMessages,
@@ -781,8 +825,11 @@ import {
   submitAddedKeyMessage,
   getAddedKeyMessages,
   getContributionsStats,
+  getVotesStanceSnapshotInfo,
+  getContributionVotesStance,
 } from '../services/api.js'
 import { useEvaluator } from '../composables/useEvaluator.js'
+import { votesStanceStrings } from '../i18n/votesStance.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -833,6 +880,33 @@ const addedKmEditSaveStatus = reactive({}) // keyed by akm.id -> null | 'saved' 
 const allContributionsStats = ref([])
 
 const KM_TYPES = ['Zustand', 'Wunsch', 'Problem', 'Qualität']
+
+// --- Votes vs. comment stance panel (descriptive only) ---
+const vsStrings = votesStanceStrings
+const votesStanceAvailable = ref(false)   // hidden if the export is absent
+const vsModels = ref([])
+const vsSource = ref('gold')
+const vsModel = ref('')
+const vsPanel = ref(null)
+const vsLoading = ref(false)
+
+async function loadVotesStancePanel() {
+  if (!votesStanceAvailable.value) return
+  vsLoading.value = true
+  try {
+    const params = { source: vsSource.value }
+    if (vsSource.value === 'model') params.model = vsModel.value
+    if (vsSource.value === 'live' && evaluator.value) params.evaluator = evaluator.value
+    vsPanel.value = await getContributionVotesStance(contributionId, params)
+  } catch {
+    // A contribution missing from the export simply hides the panel.
+    vsPanel.value = null
+  } finally {
+    vsLoading.value = false
+  }
+}
+
+watch([vsSource, vsModel], loadVotesStancePanel)
 
 function stanceKey(km, stance, index = null) {
   const idx = index !== undefined && index !== null ? index : (stance.index !== undefined && stance.index !== null ? stance.index : 'null')
@@ -1400,6 +1474,16 @@ onMounted(async () => {
         })
       } catch { /* ignore stats fetch errors */ }
     }
+
+    // Discover the votes-vs-stance export and load the panel if present.
+    try {
+      const info = await getVotesStanceSnapshotInfo()
+      vsModels.value = info.available_models || []
+      vsModel.value = info.default_model || vsModels.value[0] || ''
+      vsSource.value = info.default_source || 'gold'
+      votesStanceAvailable.value = true
+      await loadVotesStancePanel()
+    } catch { /* export absent -> panel stays hidden */ }
   } catch {
     error.value = true
   } finally {
@@ -1410,8 +1494,40 @@ onMounted(async () => {
 
 <style scoped>
 /* Contribution text */
-.contribution-card { margin-bottom: var(--space-8); }
+.contribution-card { margin-bottom: var(--space-6); }
 .contribution-text { margin: 0; line-height: var(--line-height-loose); }
+
+/* Votes vs. stance panel */
+.votes-stance-panel { margin-bottom: var(--space-8); }
+.votes-stance-panel__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.votes-stance-panel__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 160px;
+}
+.votes-stance-panel__label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.votes-stance-panel__select {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+}
+.votes-stance-panel__state { padding: var(--space-4) 0; }
+.votes-stance-panel__coverage { margin: var(--space-3) 0 0; }
 
 /* Section header */
 .section-header {

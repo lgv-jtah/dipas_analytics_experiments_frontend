@@ -95,6 +95,7 @@ defineEmits(['toggle'])
 const evaluationNavItems = [
   { to: '/evaluation',              icon: 'progress',       label: 'Overview' },
   { to: '/evaluation/contributions', icon: 'contributions',  label: 'Contributions' },
+  { to: '/evaluation/votes-stance',  icon: 'stance',         label: 'Votes vs. Stance' },
 ]
 
 const analysisNavItems = [

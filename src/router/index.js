@@ -7,6 +7,7 @@ import Experiments           from '../pages/Experiments.vue'
 import EvaluationOverview    from '../pages/EvaluationOverview.vue'
 import ContributionList      from '../pages/ContributionList.vue'
 import ContributionDetail    from '../pages/ContributionDetail.vue'
+import VotesStance           from '../pages/VotesStance.vue'
 import Settings              from '../pages/Settings.vue'
 
 const routes = [
@@ -15,6 +16,7 @@ const routes = [
   { path: '/evaluation',                          component: EvaluationOverview, name: 'evaluation' },
   { path: '/evaluation/contributions',            component: ContributionList,   name: 'contribution-list' },
   { path: '/evaluation/contributions/:id',        component: ContributionDetail, name: 'contribution-detail' },
+  { path: '/evaluation/votes-stance',             component: VotesStance,        name: 'votes-stance' },
   // Analysis (existing pages)
   { path: '/key-message-extraction',              component: KeyMessageExtraction, name: 'key-message-extraction' },
   { path: '/stance-detection',                    component: StanceDetection,      name: 'stance-detection' },
