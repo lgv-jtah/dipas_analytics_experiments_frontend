@@ -88,7 +88,9 @@ export const votesStanceStrings = {
   scatterHint:
     'Every dot is one idea. The further right a dot sits, the more of its ' +
     'thumbs were thumbs up. The higher it sits, the more of its clear comments ' +
-    'agreed. A bigger dot means the idea has more labelled comments. If a dot ' +
+    'agreed. A bigger dot means the idea has more labelled comments. The small ' +
+    'number next to a dot is different: it says how many ideas sit at exactly ' +
+    'that spot, not how many comments they have. If a dot ' +
     'is on the dashed diagonal line, the thumbs and the comments tell the same ' +
     'story. But be careful: many ideas have only one clear comment, so that ' +
     'dot can only sit at 0% or 100%, and one dot on its own does not tell you ' +
@@ -113,8 +115,10 @@ export const votesStanceStrings = {
       'The other {missing} have no thumbs or no clear comment, so they cannot ' +
       'be placed.',
     overlap:
-      'Dots can lie on top of each other, so fewer dots may be visible than ' +
-      'this number.',
+      'Some dots lie exactly on top of each other. A number next to a dot ' +
+      'shows how many are stacked there. Each one is also listed in the table ' +
+      'below.',
+    stack: '{count} contributions are stacked here.',
     unitOne: 'contribution',
     unitOther: 'contributions',
   },
@@ -266,7 +270,9 @@ export const votesStanceStringsDe = {
     'Jeder Punkt ist ein Beitrag. Je weiter rechts ein Punkt liegt, desto mehr ' +
     'seiner Daumen zeigen nach oben. Je höher er liegt, desto mehr seiner ' +
     'eindeutigen Kommentare stimmen zu. Ein größerer Punkt bedeutet, dass der ' +
-    'Beitrag mehr markierte Kommentare hat. Liegt ein Punkt auf der ' +
+    'Beitrag mehr markierte Kommentare hat. Die kleine Zahl neben einem Punkt ' +
+    'ist etwas anderes: Sie sagt, wie viele Beiträge genau an dieser Stelle ' +
+    'liegen, nicht wie viele Kommentare sie haben. Liegt ein Punkt auf der ' +
     'gestrichelten Diagonale, sagen die Daumen und die Kommentare dasselbe aus. ' +
     'Aber Vorsicht: Viele Beiträge haben nur einen eindeutigen Kommentar. So ein ' +
     'Punkt kann nur bei 0 % oder 100 % liegen, und ein einzelner Punkt sagt ' +
@@ -290,8 +296,10 @@ export const votesStanceStringsDe = {
       'Die übrigen {missing} Beiträge haben keine Daumen oder keinen ' +
       'eindeutigen Kommentar und können nicht dargestellt werden.',
     overlap:
-      'Punkte können aufeinanderliegen. Dann sind vielleicht weniger Punkte zu ' +
-      'sehen, als die Zahl angibt.',
+      'Manche Punkte liegen genau aufeinander. Eine Zahl neben einem Punkt ' +
+      'zeigt, wie viele Punkte dort liegen. Jeder dieser Beiträge steht auch ' +
+      'in der Tabelle unten.',
+    stack: 'Hier liegen {count} Beiträge aufeinander.',
     unitOne: 'Beitrag',
     unitOther: 'Beiträgen',
   },
@@ -445,4 +453,38 @@ export function formatDotCount(strings, { shown, total, missing }) {
   else if (missing > 1) parts.push(interpolate(dc.missingMany, { missing }))
   parts.push(dc.overlap)
   return parts.join(' ')
+}
+
+/**
+ * Build the grouping key for a plotted position. The coordinates are percentage
+ * shares (0..100), so six decimals is coarse enough to absorb floating-point
+ * noise — two dots computed for the same spot round to one key instead of
+ * drifting apart — yet fine enough never to merge genuinely different positions.
+ * Shared so the component and this module never spell the key format two
+ * different ways.
+ */
+export function stackKey(x, y) {
+  return `${x.toFixed(6)},${y.toFixed(6)}`
+}
+
+/**
+ * Group plotted points by their position and summarise each distinct spot.
+ * `points` is `[{ x, y, n, contribution_id }]`. Returns one entry per distinct
+ * position as `{ x, y, count, maxN, key }`, where `count` is how many points
+ * share the spot and `maxN` is the largest `n` among them. Order follows first
+ * appearance of each position in `points`.
+ */
+export function computeDotStacks(points) {
+  const groups = new Map()
+  for (const p of points) {
+    const key = stackKey(p.x, p.y)
+    const existing = groups.get(key)
+    if (existing) {
+      existing.count += 1
+      if (p.n > existing.maxN) existing.maxN = p.n
+    } else {
+      groups.set(key, { x: p.x, y: p.y, count: 1, maxN: p.n, key })
+    }
+  }
+  return Array.from(groups.values())
 }
