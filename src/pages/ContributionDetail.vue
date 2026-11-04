@@ -46,6 +46,13 @@
             </select>
           </label>
         </div>
+        <!-- Plain-language intro and source help, reused from the Votes vs. Stance i18n file -->
+        <HhText tag="p" variant="caption" color="secondary" class="votes-stance-panel__intro">
+          {{ vsStrings.panelIntro }}
+        </HhText>
+        <HhText tag="p" variant="caption" color="secondary" class="votes-stance-panel__intro">
+          {{ vsStrings.sourceHelp }}
+        </HhText>
         <div v-if="vsLoading" class="votes-stance-panel__state">
           <HhText variant="caption" color="secondary">{{ vsStrings.loading }}</HhText>
         </div>
@@ -1526,6 +1533,7 @@ onMounted(async () => {
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
 }
+.votes-stance-panel__intro { margin: 0 0 var(--space-3); }
 .votes-stance-panel__state { padding: var(--space-4) 0; }
 .votes-stance-panel__coverage { margin: var(--space-3) 0 0; }
 

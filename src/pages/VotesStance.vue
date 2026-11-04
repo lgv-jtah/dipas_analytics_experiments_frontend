@@ -2,16 +2,27 @@
   VotesStance page: descriptive per-contribution comparison of the thumbs-up
   share among votes and the favor share among comment stances. Source selector
   (gold / live / model), a scatter and a sortable table. Clicking a scatter
-  point or a table row opens that contribution's detail page.
+  point or a table row opens that contribution's detail page. The page also
+  carries plain-language explanations for a general audience (intro, source
+  help, scatter hint, and a collapsible column legend); their wording lives in
+  src/i18n/votesStance.js.
 -->
 <template>
   <AppShell>
     <PageHeader :title="t.pageTitle" icon="stance" :description="t.pageDescription" />
 
+    <!-- Plain-language introduction -->
+    <HhCard variant="subtle" class="vs-intro">
+      <HhText tag="p" variant="body">{{ t.pageIntro }}</HhText>
+    </HhCard>
+
     <!-- Descriptive-only caveat + snapshot time -->
     <HhCard variant="subtle" class="vs-note">
       <HhText tag="p" variant="caption" color="secondary" class="vs-note__text">
         {{ note || t.descriptiveNote }}
+      </HhText>
+      <HhText tag="p" variant="caption" color="secondary">
+        {{ t.descriptiveNotePlain }}
       </HhText>
       <HhText v-if="snapshotUtc" tag="p" variant="caption" color="secondary">
         {{ t.snapshotPrefix }}: {{ snapshotUtc }}
@@ -45,6 +56,10 @@
           </select>
         </label>
       </div>
+
+      <HhText tag="p" variant="caption" color="secondary" class="vs-controls__help">
+        {{ t.sourceHelp }}
+      </HhText>
 
       <HhText v-if="source === 'live'" tag="p" variant="caption" color="secondary" class="vs-controls__hint">
         {{ t.liveHint }}
@@ -111,6 +126,18 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Collapsible, plain-language legend explaining each table column -->
+        <details class="vs-help">
+          <summary class="vs-help__summary">{{ t.tableHelp.title }}</summary>
+          <HhText tag="p" variant="caption" color="secondary">{{ t.tableHelp.contribution }}</HhText>
+          <HhText tag="p" variant="caption" color="secondary">{{ t.tableHelp.thumbsUpShare }}</HhText>
+          <HhText tag="p" variant="caption" color="secondary">{{ t.tableHelp.favorShare }}</HhText>
+          <HhText tag="p" variant="caption" color="secondary">{{ t.tableHelp.difference }}</HhText>
+          <HhText tag="p" variant="caption" color="secondary">{{ t.tableHelp.nComments }}</HhText>
+          <HhText tag="p" variant="caption" color="secondary">{{ t.tableHelp.counts }}</HhText>
+          <HhText tag="p" variant="caption" color="secondary">{{ t.tableHelp.na }}</HhText>
+        </details>
       </HhCard>
     </template>
   </AppShell>
@@ -267,6 +294,9 @@ watch([source, model, evaluator], loadOverview)
 </script>
 
 <style scoped>
+.vs-intro {
+  margin-bottom: var(--space-4);
+}
 .vs-note {
   margin-bottom: var(--space-4);
 }
@@ -283,6 +313,9 @@ watch([source, model, evaluator], loadOverview)
   gap: var(--space-4);
 }
 .vs-controls__hint {
+  margin: var(--space-3) 0 0;
+}
+.vs-controls__help {
   margin: var(--space-3) 0 0;
 }
 .vs-field {
@@ -354,5 +387,23 @@ watch([source, model, evaluator], loadOverview)
 .vs-counts {
   color: var(--color-text-secondary);
   white-space: nowrap;
+}
+.vs-help {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+.vs-help__summary {
+  cursor: pointer;
+  user-select: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+.vs-help__summary:hover {
+  color: var(--color-text-primary);
+}
+.vs-help > :not(summary) {
+  margin: var(--space-3) 0 0;
 }
 </style>
