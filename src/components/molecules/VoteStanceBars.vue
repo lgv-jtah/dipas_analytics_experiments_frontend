@@ -11,7 +11,9 @@
       <div class="vsb__row">
         <HhText tag="span" variant="label">{{ strings.votesBarTitle }}</HhText>
         <HhText tag="span" variant="caption" color="secondary">
-          {{ formatShare(votes.thumbs_up_share) }} {{ strings.votesPro.toLowerCase() }}
+          <!-- Dedicated lower-case key, not votesPro.toLowerCase(): lowercasing
+               would wrongly down-case German nouns (e.g. "Daumen hoch"). -->
+          {{ formatShare(votes.thumbs_up_share, strings) }} {{ strings.votesProInline }}
         </HhText>
       </div>
       <div v-if="votesTotal > 0" class="vsb__bar" role="img"
@@ -45,7 +47,8 @@
       <div class="vsb__row">
         <HhText tag="span" variant="label">{{ strings.commentsBarTitle }}</HhText>
         <HhText tag="span" variant="caption" color="secondary">
-          {{ formatShare(comments.comment_favor_share) }} {{ strings.catFavor.toLowerCase() }}
+          <!-- Dedicated lower-case key (see votes bar above): avoids down-casing German nouns. -->
+          {{ formatShare(comments.comment_favor_share, strings) }} {{ strings.catFavorInline }}
         </HhText>
       </div>
       <div v-if="comments.n_comments > 0" class="vsb__bar">

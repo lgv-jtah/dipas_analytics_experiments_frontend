@@ -40,7 +40,7 @@
         @click="$emit('select', p.contribution_id)"
         @keydown.enter="$emit('select', p.contribution_id)"
       >
-        <title>#{{ p.contribution_id }} — {{ strings.axisX }}: {{ p.x.toFixed(0) }}%, {{ strings.axisY }}: {{ p.y.toFixed(0) }}% ({{ p.n }})</title>
+        <title>#{{ p.contribution_id }} — {{ strings.axisX }}: {{ p.x.toFixed(0) }}{{ strings.pctSuffix }}, {{ strings.axisY }}: {{ p.y.toFixed(0) }}{{ strings.pctSuffix }} ({{ p.n }})</title>
       </circle>
 
       <!-- Axis labels -->

@@ -11,6 +11,11 @@
   <AppShell>
     <PageHeader :title="t.pageTitle" icon="stance" :description="t.pageDescription" />
 
+    <!-- DE/EN language switch, shared with the contribution-page panel -->
+    <div class="vs-langbar">
+      <LanguageToggle />
+    </div>
+
     <!-- Plain-language introduction -->
     <HhCard variant="subtle" class="vs-intro">
       <HhText tag="p" variant="body">{{ t.pageIntro }}</HhText>
@@ -19,7 +24,7 @@
     <!-- Descriptive-only caveat + snapshot time -->
     <HhCard variant="subtle" class="vs-note">
       <HhText tag="p" variant="caption" color="secondary" class="vs-note__text">
-        {{ note || t.descriptiveNote }}
+        {{ displayNote }}
       </HhText>
       <HhText tag="p" variant="caption" color="secondary">
         {{ t.descriptiveNotePlain }}
@@ -151,13 +156,17 @@ import PageHeader from '../components/molecules/PageHeader.vue'
 import HhCard from '../components/molecules/HhCard.vue'
 import HhText from '../components/atoms/HhText.vue'
 import StanceScatter from '../components/molecules/StanceScatter.vue'
+import LanguageToggle from '../components/molecules/LanguageToggle.vue'
 import {
   getVotesStanceSnapshotInfo,
   getVotesStanceOverview,
 } from '../services/api.js'
-import { votesStanceStrings, formatShare } from '../i18n/votesStance.js'
+import { formatShare } from '../i18n/votesStance.js'
+import { useVotesStanceStrings } from '../composables/useVotesStanceLang.js'
 
-const t = votesStanceStrings
+// `t` is a computed ref of the active-language strings: use t.value in <script>,
+// while templates auto-unwrap it. `lang` drives the English-only backend note below.
+const { lang, strings: t } = useVotesStanceStrings()
 const router = useRouter()
 
 const loading = ref(true)
@@ -173,20 +182,20 @@ const evaluators = ref([])
 const snapshotUtc = ref('')
 const note = ref('')
 
-const columns = [
-  { key: 'contribution_id', label: t.table.contribution },
-  { key: 'thumbs_up_share', label: t.table.thumbsUpShare },
-  { key: 'comment_favor_share', label: t.table.favorShare },
-  { key: 'difference', label: t.table.difference },
-  { key: 'n_comments', label: t.table.nComments },
-  { key: 'counts', label: t.table.counts },
-]
+const columns = computed(() => [
+  { key: 'contribution_id', label: t.value.table.contribution },
+  { key: 'thumbs_up_share', label: t.value.table.thumbsUpShare },
+  { key: 'comment_favor_share', label: t.value.table.favorShare },
+  { key: 'difference', label: t.value.table.difference },
+  { key: 'n_comments', label: t.value.table.nComments },
+  { key: 'counts', label: t.value.table.counts },
+])
 
 // The "Pairs verified" column only applies to the live source.
 const activeColumns = computed(() =>
   source.value === 'live'
-    ? [...columns, { key: 'live_pairs_verified', label: t.pairsVerified }]
-    : columns
+    ? [...columns.value, { key: 'live_pairs_verified', label: t.value.pairsVerified }]
+    : columns.value
 )
 
 const sortKey = ref('contribution_id')
@@ -200,8 +209,14 @@ const livePartiallyVerifiedCount = computed(() =>
   rows.value.reduce((sum, r) => sum + (r.live_comments_partially_verified || 0), 0)
 )
 
+// The backend-provided note is English, so only show it in English mode; in
+// German, always use the translated caveat. English behaviour is unchanged.
+const displayNote = computed(() =>
+  lang.value === 'en' ? (note.value || t.value.descriptiveNote) : t.value.descriptiveNote
+)
+
 function fmt(value) {
-  return formatShare(value, t)
+  return formatShare(value, t.value)
 }
 
 // The signed gap between the comment favor share and the thumbs-up share (favor minus thumbs), in percentage points.
@@ -218,11 +233,17 @@ function difference(row) {
   return (row.comment_favor_share - row.thumbs_up_share) * 100
 }
 
+// Format the difference with the locale's own sign glyphs. toFixed() always emits
+// an ASCII hyphen "-", but German shows the minus as U+2212 (via diffMinus), so we
+// strip the hyphen and re-prepend the locale minus; positives get the locale plus.
 function fmtDiff(row) {
   const d = difference(row)
-  if (d === null) return t.na
-  const sign = d > 0 ? '+' : ''
-  return `${sign}${d.toFixed(0)} pp`
+  if (d === null) return t.value.na
+  const s = d.toFixed(0)
+  if (s.startsWith('-')) {
+    return `${t.value.diffMinus}${s.slice(1)}${t.value.diffSuffix}`
+  }
+  return `${d > 0 ? t.value.diffPlus : ''}${s}${t.value.diffSuffix}`
 }
 
 function sortValue(row, key) {
@@ -295,6 +316,11 @@ watch([source, model, evaluator], loadOverview)
 </script>
 
 <style scoped>
+.vs-langbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-4);
+}
 .vs-intro {
   margin-bottom: var(--space-4);
 }

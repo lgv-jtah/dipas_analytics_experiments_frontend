@@ -45,6 +45,8 @@
               <option v-for="m in vsModels" :key="m" :value="m">{{ m }}</option>
             </select>
           </label>
+          <!-- DE/EN switch, shared with the Votes vs. Stance page -->
+          <LanguageToggle class="votes-stance-panel__lang" />
         </div>
         <!-- Plain-language intro and source help, reused from the Votes vs. Stance i18n file -->
         <HhText tag="p" variant="caption" color="secondary" class="votes-stance-panel__intro">
@@ -821,6 +823,7 @@ import HhButton from '../components/atoms/HhButton.vue'
 import HhVerdictPicker from '../components/atoms/HhVerdictPicker.vue'
 import HhTextarea from '../components/atoms/HhTextarea.vue'
 import VoteStanceBars from '../components/molecules/VoteStanceBars.vue'
+import LanguageToggle from '../components/molecules/LanguageToggle.vue'
 import {
   getContribution,
   getKeyMessages,
@@ -836,7 +839,7 @@ import {
   getContributionVotesStance,
 } from '../services/api.js'
 import { useEvaluator } from '../composables/useEvaluator.js'
-import { votesStanceStrings } from '../i18n/votesStance.js'
+import { useVotesStanceStrings } from '../composables/useVotesStanceLang.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -889,7 +892,8 @@ const allContributionsStats = ref([])
 const KM_TYPES = ['Zustand', 'Wunsch', 'Problem', 'Qualität']
 
 // --- Votes vs. comment stance panel (descriptive only) ---
-const vsStrings = votesStanceStrings
+// vsStrings is a computed ref (active-language strings); templates auto-unwrap it.
+const { strings: vsStrings } = useVotesStanceStrings()
 const votesStanceAvailable = ref(false)   // hidden if the export is absent
 const vsModels = ref([])
 const vsSource = ref('gold')
@@ -1509,8 +1513,12 @@ onMounted(async () => {
 .votes-stance-panel__controls {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-end;
   gap: var(--space-4);
   margin-bottom: var(--space-4);
+}
+.votes-stance-panel__lang {
+  margin-left: auto;
 }
 .votes-stance-panel__field {
   display: flex;
