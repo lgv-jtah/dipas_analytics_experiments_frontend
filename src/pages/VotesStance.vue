@@ -204,7 +204,8 @@ function fmt(value) {
   return formatShare(value, t)
 }
 
-// The signed gap between vote and comment favor shares, in percentage points.
+// The signed gap between the comment favor share and the thumbs-up share (favor minus thumbs), in percentage points.
+// This direction (favor minus vote) deliberately matches the stakeholder slides and the pre-registered vote-ratio analysis, so don't flip it on its own.
 function difference(row) {
   if (
     row.thumbs_up_share === null ||
@@ -214,7 +215,7 @@ function difference(row) {
   ) {
     return null
   }
-  return (row.thumbs_up_share - row.comment_favor_share) * 100
+  return (row.comment_favor_share - row.thumbs_up_share) * 100
 }
 
 function fmtDiff(row) {

@@ -101,7 +101,7 @@ export const votesStanceStrings = {
   // Plain-language help explaining what each table column means, written at about
   // a 12-year-old reading level so any reader can follow it. The wording was
   // checked against the actual calculations in VotesStance.vue (for example,
-  // difference = thumbs-up share minus favor share, and favor share =
+  // difference = favor share minus thumbs-up share, and favor share =
   // favor / (favor + against)), so if those formulas change, update these
   // explanations to match.
   tableHelp: {
@@ -118,11 +118,11 @@ export const votesStanceStrings = {
       'is favor ÷ (favor + against). Example: 3 in favor and 1 against makes ' +
       '75%.',
     difference:
-      'Difference: the thumbs-up share minus the favor share. It is shown in ' +
+      'Difference: the favor share minus the thumbs-up share. It is shown in ' +
       '"pp" (percentage points), which simply means the gap between two ' +
-      'percentages. Example: 90% minus 70% is +20 pp. A plus means the thumbs ' +
-      'look more positive than the comments. A minus means the comments look ' +
-      'more positive than the thumbs.',
+      'percentages. Example: 70% minus 90% is -20 pp. A minus means the ' +
+      'comments look less positive than the thumbs. A plus means the comments ' +
+      'look more positive than the thumbs.',
     nComments:
       'Comments: how many comments on this idea have a label, including ' +
       'neutral and mixed ones.',
