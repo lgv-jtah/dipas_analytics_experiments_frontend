@@ -53,6 +53,9 @@
           {{ vsStrings.panelIntro }}
         </HhText>
         <HhText tag="p" variant="caption" color="secondary" class="votes-stance-panel__intro">
+          {{ vsStrings.clearComment }}
+        </HhText>
+        <HhText tag="p" variant="caption" color="secondary" class="votes-stance-panel__intro">
           {{ vsStrings.sourceHelp }}
         </HhText>
         <div v-if="vsLoading" class="votes-stance-panel__state">

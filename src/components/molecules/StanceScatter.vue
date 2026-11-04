@@ -6,6 +6,17 @@
 -->
 <template>
   <div class="scatter">
+    <HhText
+      v-if="rows.length > 0"
+      tag="p"
+      variant="caption"
+      color="secondary"
+      class="scatter__count"
+      aria-live="polite"
+    >
+      {{ countLine }}
+    </HhText>
+
     <svg
       v-if="points.length > 0"
       class="scatter__svg"
@@ -56,13 +67,17 @@
     <HhText tag="p" variant="caption" color="secondary" class="scatter__hint">
       {{ strings.scatterHint }}
     </HhText>
+
+    <HhText tag="p" variant="caption" color="secondary" class="scatter__hint">
+      {{ strings.clearComment }}
+    </HhText>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import HhText from '../atoms/HhText.vue'
-import { votesStanceStrings } from '../../i18n/votesStance.js'
+import { votesStanceStrings, formatDotCount } from '../../i18n/votesStance.js'
 
 const props = defineProps({
   // rows: [{ contribution_id, thumbs_up_share, comment_favor_share, n_comments }]
@@ -92,6 +107,21 @@ const points = computed(() =>
       y: r.comment_favor_share * 100,
       n: r.n_comments ?? 0,
     }))
+)
+
+// Caption summarising how many contributions are plotted as dots. Reuses the
+// single `points` filter so the count matches the dots exactly. Note: under the
+// live source `rows` also includes contributions without live data, which lack a
+// favor share and so are filtered out here — they count as "no clear comment".
+// formatDotCount always appends the overlap sentence because many dots share a
+// position (in the gold data, 80 dots sit on 29 distinct positions), so fewer
+// dots are visible than the count; those figures are not shown on the page.
+const countLine = computed(() =>
+  formatDotCount(props.strings, {
+    shown: points.value.length,
+    total: props.rows.length,
+    missing: props.rows.length - points.value.length,
+  })
 )
 
 // Data (0..100) -> SVG coordinates. y is inverted so 0% sits at the bottom.
@@ -157,6 +187,9 @@ function radius(n) {
   font-weight: var(--font-weight-medium);
 }
 .scatter__hint {
+  margin: 0;
+}
+.scatter__count {
   margin: 0;
 }
 </style>

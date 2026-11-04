@@ -95,6 +95,29 @@ export const votesStanceStrings = {
     'much. Ideas without any thumbs or without any clear comment are not shown ' +
     'here.',
   scatterEmpty: 'No contributions have both a vote share and a favor share here.',
+  // Plain-language definition of a "clear" comment, shown as a caption. This must
+  // describe exactly the comments counted in the favor share (the favor-or-against
+  // group), so if that roll-up changes, this wording has to change with it.
+  clearComment:
+    'A clear comment takes one side. It agrees with at least one main point of ' +
+    'the idea and disagrees with none, or it disagrees with at least one and ' +
+    'agrees with none. It does not have to say anything about the other main ' +
+    'points. Comments that take no side (neutral) or both sides (mixed) are not ' +
+    'clear.',
+  // Parts of the "how many dots are shown" caption. Assembled by formatDotCount.
+  dotCount: {
+    shown: 'Showing {shown} of {total} {unit} as dots.',
+    missingOne:
+      'The other one has no thumbs or no clear comment, so it cannot be placed.',
+    missingMany:
+      'The other {missing} have no thumbs or no clear comment, so they cannot ' +
+      'be placed.',
+    overlap:
+      'Dots can lie on top of each other, so fewer dots may be visible than ' +
+      'this number.',
+    unitOne: 'contribution',
+    unitOther: 'contributions',
+  },
 
   // Table
   table: {
@@ -252,6 +275,26 @@ export const votesStanceStringsDe = {
   scatterEmpty:
     'Hier gibt es keine Beiträge, die sowohl einen Anteil Daumen hoch als auch ' +
     'einen Zustimmungsanteil haben.',
+  clearComment:
+    'Ein eindeutiger Kommentar entscheidet sich für eine Seite. Er stimmt ' +
+    'mindestens einer Kernaussage des Beitrags zu und lehnt keine ab, oder er ' +
+    'lehnt mindestens eine ab und stimmt keiner zu. Zu den anderen Kernaussagen ' +
+    'muss er nichts sagen. Kommentare, die sich für keine Seite entscheiden ' +
+    '(neutral) oder für beide (gemischt), sind nicht eindeutig.',
+  dotCount: {
+    shown: 'Als Punkte dargestellt: {shown} von {total} {unit}.',
+    missingOne:
+      'Der übrige Beitrag hat keine Daumen oder keinen eindeutigen Kommentar ' +
+      'und kann nicht dargestellt werden.',
+    missingMany:
+      'Die übrigen {missing} Beiträge haben keine Daumen oder keinen ' +
+      'eindeutigen Kommentar und können nicht dargestellt werden.',
+    overlap:
+      'Punkte können aufeinanderliegen. Dann sind vielleicht weniger Punkte zu ' +
+      'sehen, als die Zahl angibt.',
+    unitOne: 'Beitrag',
+    unitOther: 'Beiträgen',
+  },
 
   table: {
     contribution: 'Beitrag',
@@ -272,7 +315,7 @@ export const votesStanceStringsDe = {
       'Anteil Daumen hoch: wie viel Prozent aller Daumen bei diesem Beitrag ' +
       'nach oben zeigen. 100 % bedeutet: Alle Daumen zeigen nach oben.',
     favorShare:
-      'Zustimmungsanteil: Von den Kommentaren, die klar zustimmen oder ablehnen, ' +
+      'Zustimmungsanteil: Von den Kommentaren, die eindeutig zustimmen oder ablehnen, ' +
       'wie viel Prozent zustimmen. Neutrale und gemischte Kommentare zählen ' +
       'nicht mit. Die Rechnung ist also: zustimmend ÷ (zustimmend + ablehnend). ' +
       'Beispiel: 3 zustimmend und 1 ablehnend ergeben 75 %.',
@@ -374,4 +417,32 @@ export function getVotesStanceStrings(lang) {
 export function formatShare(value, strings = votesStanceStrings) {
   if (value === null || value === undefined) return strings.na
   return `${(value * 100).toFixed(0)}${strings.pctSuffix}`
+}
+
+/**
+ * Replace every `{key}` token in `template` with `String(vars[key])`. Tokens
+ * whose key is not present in `vars` are left untouched, so a template can carry
+ * literal braces for keys it does not fill.
+ */
+export function interpolate(template, vars) {
+  return template.replace(/\{(\w+)\}/g, (match, key) =>
+    vars != null && key in vars ? String(vars[key]) : match
+  )
+}
+
+/**
+ * Build the "how many dots are shown" caption from a locale's `dotCount` block.
+ * `shown` of `total` contributions are plotted and `missing` could not be.
+ * Picks the singular unit when `total === 1`, states how many are missing (one,
+ * many, or omits the clause when none), and always appends the overlap caveat.
+ * The parts are joined with single spaces into one sentence group.
+ */
+export function formatDotCount(strings, { shown, total, missing }) {
+  const dc = strings.dotCount
+  const unit = total === 1 ? dc.unitOne : dc.unitOther
+  const parts = [interpolate(dc.shown, { shown, total, unit })]
+  if (missing === 1) parts.push(dc.missingOne)
+  else if (missing > 1) parts.push(interpolate(dc.missingMany, { missing }))
+  parts.push(dc.overlap)
+  return parts.join(' ')
 }
