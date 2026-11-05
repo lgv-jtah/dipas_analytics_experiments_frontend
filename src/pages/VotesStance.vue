@@ -34,46 +34,11 @@
       </HhText>
     </HhCard>
 
-    <!-- Controls -->
-    <HhCard class="vs-controls">
-      <div class="vs-controls__row">
-        <label class="vs-field">
-          <span class="vs-field__label">{{ t.sourceLabel }}</span>
-          <select v-model="source" class="vs-select">
-            <option value="gold">{{ t.sourceGold }}</option>
-            <option value="live">{{ t.sourceLive }}</option>
-            <option value="model">{{ t.sourceModel }}</option>
-          </select>
-        </label>
+    <!-- Overall summary (gold only): pre-registered headline + shared block -->
+    <VotesStanceSummary />
 
-        <label v-if="source === 'model'" class="vs-field">
-          <span class="vs-field__label">{{ t.modelLabel }}</span>
-          <select v-model="model" class="vs-select">
-            <option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option>
-          </select>
-        </label>
-
-        <label v-if="source === 'live'" class="vs-field">
-          <span class="vs-field__label">{{ t.evaluatorLabel }}</span>
-          <select v-model="evaluator" class="vs-select">
-            <option value="">{{ t.evaluatorAll }}</option>
-            <option v-for="e in evaluators" :key="e" :value="e">{{ e }}</option>
-          </select>
-        </label>
-      </div>
-
-      <HhText tag="p" variant="caption" color="secondary" class="vs-controls__help">
-        {{ t.sourceHelp }}
-      </HhText>
-
-      <HhText v-if="source === 'live'" tag="p" variant="caption" color="secondary" class="vs-controls__hint">
-        {{ t.liveHint }}
-        <template v-if="rows.length">
-          · {{ liveContributionsCount }} {{ t.liveContributionsWithData }}
-          · {{ livePartiallyVerifiedCount }} {{ t.partiallyVerifiedComments }}
-        </template>
-      </HhText>
-    </HhCard>
+    <!-- Most agreed-with / most rejected gold key messages -->
+    <KeyMessageOverview />
 
     <!-- States -->
     <div v-if="loading" class="vs-state">
@@ -157,6 +122,8 @@ import HhCard from '../components/molecules/HhCard.vue'
 import HhText from '../components/atoms/HhText.vue'
 import StanceScatter from '../components/molecules/StanceScatter.vue'
 import LanguageToggle from '../components/molecules/LanguageToggle.vue'
+import VotesStanceSummary from '../components/molecules/VotesStanceSummary.vue'
+import KeyMessageOverview from '../components/molecules/KeyMessageOverview.vue'
 import {
   getVotesStanceSnapshotInfo,
   getVotesStanceOverview,
@@ -173,12 +140,13 @@ const loading = ref(true)
 const error = ref(false)
 const rows = ref([])
 
+// Hand labels only: source is pinned to 'gold' and never changes (the selectors
+// were removed). model and evaluator stay inert placeholders so the live/model
+// request paths below keep compiling without being reachable from the UI.
 const source = ref('gold')
 const model = ref('')
 const evaluator = ref('')
 
-const availableModels = ref([])
-const evaluators = ref([])
 const snapshotUtc = ref('')
 const note = ref('')
 
@@ -200,14 +168,6 @@ const activeColumns = computed(() =>
 
 const sortKey = ref('contribution_id')
 const sortDir = ref('asc')
-
-const liveContributionsCount = computed(
-  () => rows.value.filter((r) => r.n_comments > 0).length
-)
-
-const livePartiallyVerifiedCount = computed(() =>
-  rows.value.reduce((sum, r) => sum + (r.live_comments_partially_verified || 0), 0)
-)
 
 // The backend-provided note is English, so only show it in English mode; in
 // German, always use the translated caveat. English behaviour is unchanged.
@@ -284,6 +244,9 @@ async function loadOverview() {
   error.value = false
   try {
     const params = { source: source.value }
+    // Inert while source is pinned to 'gold': these branches only fire for the
+    // live/model sources, which the UI no longer offers. Kept so re-enabling the
+    // selectors later needs no change here.
     if (source.value === 'model') params.model = model.value
     if (source.value === 'live' && evaluator.value) params.evaluator = evaluator.value
     rows.value = await getVotesStanceOverview(params)
@@ -298,12 +261,11 @@ async function loadOverview() {
 onMounted(async () => {
   try {
     const info = await getVotesStanceSnapshotInfo()
-    availableModels.value = info.available_models || []
-    evaluators.value = info.evaluators || []
     snapshotUtc.value = info.snapshot_utc || ''
     note.value = info.note || ''
-    source.value = info.default_source || 'gold'
-    model.value = info.default_model || availableModels.value[0] || ''
+    // Hand labels only: the scatter and table always use the gold source, and
+    // the source/model/evaluator selectors are intentionally not shown.
+    source.value = 'gold'
   } catch {
     error.value = true
   }
