@@ -31,32 +31,17 @@
       <!-- Votes vs. comment stance panel (descriptive only) -->
       <HhCard v-if="votesStanceAvailable" :title="vsStrings.pageTitle" class="votes-stance-panel">
         <div class="votes-stance-panel__controls">
-          <label class="votes-stance-panel__field">
-            <span class="votes-stance-panel__label">{{ vsStrings.sourceLabel }}</span>
-            <select v-model="vsSource" class="votes-stance-panel__select">
-              <option value="gold">{{ vsStrings.sourceGold }}</option>
-              <option value="live">{{ vsStrings.sourceLive }}</option>
-              <option value="model">{{ vsStrings.sourceModel }}</option>
-            </select>
-          </label>
-          <label v-if="vsSource === 'model'" class="votes-stance-panel__field">
-            <span class="votes-stance-panel__label">{{ vsStrings.modelLabel }}</span>
-            <select v-model="vsModel" class="votes-stance-panel__select">
-              <option v-for="m in vsModels" :key="m" :value="m">{{ m }}</option>
-            </select>
-          </label>
-          <!-- DE/EN switch, shared with the Votes vs. Stance page -->
+          <!-- Hand labels only: the source and model selectors are intentionally
+               not shown here; the panel always uses the gold source. The DE/EN
+               switch stays, shared with the Votes vs. Stance page. -->
           <LanguageToggle class="votes-stance-panel__lang" />
         </div>
-        <!-- Plain-language intro and source help, reused from the Votes vs. Stance i18n file -->
+        <!-- Plain-language intro, reused from the Votes vs. Stance i18n file -->
         <HhText tag="p" variant="caption" color="secondary" class="votes-stance-panel__intro">
           {{ vsStrings.panelIntro }}
         </HhText>
         <HhText tag="p" variant="caption" color="secondary" class="votes-stance-panel__intro">
           {{ vsStrings.clearComment }}
-        </HhText>
-        <HhText tag="p" variant="caption" color="secondary" class="votes-stance-panel__intro">
-          {{ vsStrings.sourceHelp }}
         </HhText>
         <div v-if="vsLoading" class="votes-stance-panel__state">
           <HhText variant="caption" color="secondary">{{ vsStrings.loading }}</HhText>
@@ -82,6 +67,10 @@
           </HhText>
         </template>
       </HhCard>
+
+      <!-- Hand-labelled key messages: per-key-message gold agreement/disagreement
+           (separate from the model key-message list below). Gold labels only. -->
+      <KeyMessageStancePanel :contribution-id="contributionId" />
 
       <!-- Contribution Progress Bar -->
       <div v-if="totalItemsCount > 0" class="contribution-progress">
@@ -826,6 +815,7 @@ import HhButton from '../components/atoms/HhButton.vue'
 import HhVerdictPicker from '../components/atoms/HhVerdictPicker.vue'
 import HhTextarea from '../components/atoms/HhTextarea.vue'
 import VoteStanceBars from '../components/molecules/VoteStanceBars.vue'
+import KeyMessageStancePanel from '../components/molecules/KeyMessageStancePanel.vue'
 import LanguageToggle from '../components/molecules/LanguageToggle.vue'
 import {
   getContribution,
@@ -898,7 +888,9 @@ const KM_TYPES = ['Zustand', 'Wunsch', 'Problem', 'Qualität']
 // vsStrings is a computed ref (active-language strings); templates auto-unwrap it.
 const { strings: vsStrings } = useVotesStanceStrings()
 const votesStanceAvailable = ref(false)   // hidden if the export is absent
-const vsModels = ref([])
+// Hand labels only: vsSource is pinned to 'gold'; vsModel is an inert
+// placeholder kept so the live/model request path in loadVotesStancePanel still
+// compiles even though its selectors are no longer rendered.
 const vsSource = ref('gold')
 const vsModel = ref('')
 const vsPanel = ref(null)
@@ -909,6 +901,8 @@ async function loadVotesStancePanel() {
   vsLoading.value = true
   try {
     const params = { source: vsSource.value }
+    // Inert while vsSource is pinned to 'gold': these branches only fire for the
+    // live/model sources, whose selectors are no longer shown on this panel.
     if (vsSource.value === 'model') params.model = vsModel.value
     if (vsSource.value === 'live' && evaluator.value) params.evaluator = evaluator.value
     vsPanel.value = await getContributionVotesStance(contributionId, params)
@@ -1492,9 +1486,9 @@ onMounted(async () => {
     // Discover the votes-vs-stance export and load the panel if present.
     try {
       const info = await getVotesStanceSnapshotInfo()
-      vsModels.value = info.available_models || []
-      vsModel.value = info.default_model || vsModels.value[0] || ''
-      vsSource.value = info.default_source || 'gold'
+      // Hand labels only: the panel always uses the gold source; the source and
+      // model selectors are not shown, so vsSource stays 'gold'.
+      vsSource.value = 'gold'
       votesStanceAvailable.value = true
       await loadVotesStancePanel()
     } catch { /* export absent -> panel stays hidden */ }

@@ -81,6 +81,24 @@ export const getContributionVotesStance = (contributionId, params = {}) => {
   return request(`/contributions/${contributionId}/votes-stance${qs ? `?${qs}` : ''}`)
 }
 
+// Overall votes-vs-stance summary (gold only): the pre-registered headline plus
+// the exploratory shared-contributions block.
+export const getVotesStanceSummary = () =>
+  request('/votes-stance/summary')
+
+// Per-key-message gold agreement/disagreement for one contribution (gold only).
+export const getContributionKeyMessages = (contributionId) =>
+  request(`/contributions/${contributionId}/votes-stance/key-messages`)
+
+// Most agreed-with / most rejected gold key messages (gold only).
+export const getKeyMessageOverview = (params = {}) => {
+  const clean = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== null && v !== undefined && v !== '')
+  )
+  const qs = new URLSearchParams(clean).toString()
+  return request(`/votes-stance/key-messages/overview${qs ? `?${qs}` : ''}`)
+}
+
 // Dataset
 export const getCurrentModel = () =>
   request('/dataset/model')
