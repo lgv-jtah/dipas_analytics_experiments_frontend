@@ -84,6 +84,17 @@
       {{ strings.scatterEmpty }}
     </HhText>
 
+    <!-- Its own caption, not folded into the long hint below, because readers skim the hint. -->
+    <HhText
+      v-if="points.length > 0"
+      tag="p"
+      variant="caption"
+      color="primary"
+      class="scatter__warning"
+    >
+      {{ strings.diagonalWarning }}
+    </HhText>
+
     <HhText tag="p" variant="caption" color="secondary" class="scatter__hint">
       {{ strings.scatterHint }}
     </HhText>
@@ -268,6 +279,10 @@ function badgeGeometry(stack) {
 }
 .scatter__hint {
   margin: 0;
+}
+.scatter__warning {
+  margin: 0;
+  font-weight: var(--font-weight-semibold);
 }
 .scatter__count {
   margin: 0;

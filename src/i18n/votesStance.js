@@ -90,12 +90,24 @@ export const votesStanceStrings = {
     'thumbs were thumbs up. The higher it sits, the more of its clear comments ' +
     'agreed. A bigger dot means the idea has more labelled comments. The small ' +
     'number next to a dot is different: it says how many ideas sit at exactly ' +
-    'that spot, not how many comments they have. If a dot ' +
-    'is on the dashed diagonal line, the thumbs and the comments tell the same ' +
-    'story. But be careful: many ideas have only one clear comment, so that ' +
-    'dot can only sit at 0% or 100%, and one dot on its own does not tell you ' +
-    'much. Ideas without any thumbs or without any clear comment are not shown ' +
-    'here.',
+    'that spot, not how many comments they have. Ideas without any thumbs or ' +
+    'without any clear comment are not shown here.',
+  // Caveat about dots on the 45-degree agreement line, shown above scatterHint
+  // when there are dots. Keep this neutral: it must not claim that thumbs and
+  // comments match, nor that they don't — only that a dot on the diagonal means
+  // the two percentages are equal, which is not the same thing. Do not state
+  // data-specific facts (e.g. "most ideas are positive here") because the label
+  // source can change and the numbers along with it. The one firm fact to keep
+  // is mechanical: a single clear comment forces the dot to 0% or 100%, because
+  // that one comment alone fixes the dot's height.
+  diagonalWarning:
+    'Be careful with dots on the dashed diagonal line. They only show that two ' +
+    'percentages are equal, not that thumbs and comments really go together. An ' +
+    'idea with only one clear comment can only sit at the very bottom (0%) or ' +
+    'the very top (100%), because that one comment decides how high its dot ' +
+    'sits. And when most thumbs and comments are ' +
+    'positive, many dots end up at the top right, even if thumbs and comments ' +
+    'have nothing to do with each other.',
   scatterEmpty: 'No contributions have both a vote share and a favor share here.',
   // Plain-language definition of a "clear" comment, shown as a caption. This must
   // describe exactly the comments counted in the favor share (the favor-or-against
@@ -272,12 +284,17 @@ export const votesStanceStringsDe = {
     'eindeutigen Kommentare stimmen zu. Ein größerer Punkt bedeutet, dass der ' +
     'Beitrag mehr markierte Kommentare hat. Die kleine Zahl neben einem Punkt ' +
     'ist etwas anderes: Sie sagt, wie viele Beiträge genau an dieser Stelle ' +
-    'liegen, nicht wie viele Kommentare sie haben. Liegt ein Punkt auf der ' +
-    'gestrichelten Diagonale, sagen die Daumen und die Kommentare dasselbe aus. ' +
-    'Aber Vorsicht: Viele Beiträge haben nur einen eindeutigen Kommentar. So ein ' +
-    'Punkt kann nur bei 0 % oder 100 % liegen, und ein einzelner Punkt sagt ' +
-    'wenig aus. Beiträge ohne Daumen oder ohne eindeutigen Kommentar sind hier ' +
-    'nicht zu sehen.',
+    'liegen, nicht wie viele Kommentare sie haben. Beiträge ohne Daumen oder ' +
+    'ohne eindeutigen Kommentar sind hier nicht zu sehen.',
+  diagonalWarning:
+    'Vorsicht bei Punkten auf der gestrichelten Diagonale. Sie zeigen nur, dass ' +
+    'zwei Prozentwerte gleich sind, nicht dass Daumen und Kommentare wirklich ' +
+    'zusammenhängen. Ein Beitrag mit nur einem eindeutigen Kommentar kann nur ' +
+    'ganz unten (0 %) oder ganz oben (100 %) liegen, denn dieser eine Kommentar ' +
+    'entscheidet, wie hoch sein Punkt liegt. Und wenn die meisten Daumen und ' +
+    'Kommentare positiv sind, ' +
+    'landen viele Punkte oben rechts, selbst wenn Daumen und Kommentare nichts ' +
+    'miteinander zu tun haben.',
   scatterEmpty:
     'Hier gibt es keine Beiträge, die sowohl einen Anteil Daumen hoch als auch ' +
     'einen Zustimmungsanteil haben.',
