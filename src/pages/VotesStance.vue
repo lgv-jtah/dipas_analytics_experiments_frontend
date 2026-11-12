@@ -2,58 +2,43 @@
   VotesStance page: descriptive per-contribution comparison of the thumbs-up
   share among votes and the favor share among comment stances. Source selector
   (gold / live / model), a scatter and a sortable table. Clicking a scatter
-  point or a table row opens that contribution's detail page.
+  point or a table row opens that contribution's detail page. The page also
+  carries plain-language explanations for a general audience (intro, source
+  help, scatter hint, and a collapsible column legend); their wording lives in
+  src/i18n/votesStance.js.
 -->
 <template>
   <AppShell>
     <PageHeader :title="t.pageTitle" icon="stance" :description="t.pageDescription" />
 
+    <!-- DE/EN language switch, shared with the contribution-page panel -->
+    <div class="vs-langbar">
+      <LanguageToggle />
+    </div>
+
+    <!-- Plain-language introduction -->
+    <HhCard variant="subtle" class="vs-intro">
+      <HhText tag="p" variant="body">{{ t.pageIntro }}</HhText>
+    </HhCard>
+
     <!-- Descriptive-only caveat + snapshot time -->
     <HhCard variant="subtle" class="vs-note">
       <HhText tag="p" variant="caption" color="secondary" class="vs-note__text">
-        {{ note || t.descriptiveNote }}
+        {{ displayNote }}
+      </HhText>
+      <HhText tag="p" variant="caption" color="secondary">
+        {{ t.descriptiveNotePlain }}
       </HhText>
       <HhText v-if="snapshotUtc" tag="p" variant="caption" color="secondary">
         {{ t.snapshotPrefix }}: {{ snapshotUtc }}
       </HhText>
     </HhCard>
 
-    <!-- Controls -->
-    <HhCard class="vs-controls">
-      <div class="vs-controls__row">
-        <label class="vs-field">
-          <span class="vs-field__label">{{ t.sourceLabel }}</span>
-          <select v-model="source" class="vs-select">
-            <option value="gold">{{ t.sourceGold }}</option>
-            <option value="live">{{ t.sourceLive }}</option>
-            <option value="model">{{ t.sourceModel }}</option>
-          </select>
-        </label>
+    <!-- Overall summary (gold only): pre-registered headline + shared block -->
+    <VotesStanceSummary />
 
-        <label v-if="source === 'model'" class="vs-field">
-          <span class="vs-field__label">{{ t.modelLabel }}</span>
-          <select v-model="model" class="vs-select">
-            <option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option>
-          </select>
-        </label>
-
-        <label v-if="source === 'live'" class="vs-field">
-          <span class="vs-field__label">{{ t.evaluatorLabel }}</span>
-          <select v-model="evaluator" class="vs-select">
-            <option value="">{{ t.evaluatorAll }}</option>
-            <option v-for="e in evaluators" :key="e" :value="e">{{ e }}</option>
-          </select>
-        </label>
-      </div>
-
-      <HhText v-if="source === 'live'" tag="p" variant="caption" color="secondary" class="vs-controls__hint">
-        {{ t.liveHint }}
-        <template v-if="rows.length">
-          · {{ liveContributionsCount }} {{ t.liveContributionsWithData }}
-          · {{ livePartiallyVerifiedCount }} {{ t.partiallyVerifiedComments }}
-        </template>
-      </HhText>
-    </HhCard>
+    <!-- Most agreed-with / most rejected gold key messages -->
+    <KeyMessageOverview />
 
     <!-- States -->
     <div v-if="loading" class="vs-state">
@@ -111,6 +96,18 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Collapsible, plain-language legend explaining each table column -->
+        <details class="vs-help">
+          <summary class="vs-help__summary">{{ t.tableHelp.title }}</summary>
+          <HhText tag="p" variant="caption" color="secondary">{{ t.tableHelp.contribution }}</HhText>
+          <HhText tag="p" variant="caption" color="secondary">{{ t.tableHelp.thumbsUpShare }}</HhText>
+          <HhText tag="p" variant="caption" color="secondary">{{ t.tableHelp.favorShare }}</HhText>
+          <HhText tag="p" variant="caption" color="secondary">{{ t.tableHelp.difference }}</HhText>
+          <HhText tag="p" variant="caption" color="secondary">{{ t.tableHelp.nComments }}</HhText>
+          <HhText tag="p" variant="caption" color="secondary">{{ t.tableHelp.counts }}</HhText>
+          <HhText tag="p" variant="caption" color="secondary">{{ t.tableHelp.na }}</HhText>
+        </details>
       </HhCard>
     </template>
   </AppShell>
@@ -124,60 +121,66 @@ import PageHeader from '../components/molecules/PageHeader.vue'
 import HhCard from '../components/molecules/HhCard.vue'
 import HhText from '../components/atoms/HhText.vue'
 import StanceScatter from '../components/molecules/StanceScatter.vue'
+import LanguageToggle from '../components/molecules/LanguageToggle.vue'
+import VotesStanceSummary from '../components/molecules/VotesStanceSummary.vue'
+import KeyMessageOverview from '../components/molecules/KeyMessageOverview.vue'
 import {
   getVotesStanceSnapshotInfo,
   getVotesStanceOverview,
 } from '../services/api.js'
-import { votesStanceStrings, formatShare } from '../i18n/votesStance.js'
+import { formatShare } from '../i18n/votesStance.js'
+import { useVotesStanceStrings } from '../composables/useVotesStanceLang.js'
 
-const t = votesStanceStrings
+// `t` is a computed ref of the active-language strings: use t.value in <script>,
+// while templates auto-unwrap it. `lang` drives the English-only backend note below.
+const { lang, strings: t } = useVotesStanceStrings()
 const router = useRouter()
 
 const loading = ref(true)
 const error = ref(false)
 const rows = ref([])
 
+// Hand labels only: source is pinned to 'gold' and never changes (the selectors
+// were removed). model and evaluator stay inert placeholders so the live/model
+// request paths below keep compiling without being reachable from the UI.
 const source = ref('gold')
 const model = ref('')
 const evaluator = ref('')
 
-const availableModels = ref([])
-const evaluators = ref([])
 const snapshotUtc = ref('')
 const note = ref('')
 
-const columns = [
-  { key: 'contribution_id', label: t.table.contribution },
-  { key: 'thumbs_up_share', label: t.table.thumbsUpShare },
-  { key: 'comment_favor_share', label: t.table.favorShare },
-  { key: 'difference', label: t.table.difference },
-  { key: 'n_comments', label: t.table.nComments },
-  { key: 'counts', label: t.table.counts },
-]
+const columns = computed(() => [
+  { key: 'contribution_id', label: t.value.table.contribution },
+  { key: 'thumbs_up_share', label: t.value.table.thumbsUpShare },
+  { key: 'comment_favor_share', label: t.value.table.favorShare },
+  { key: 'difference', label: t.value.table.difference },
+  { key: 'n_comments', label: t.value.table.nComments },
+  { key: 'counts', label: t.value.table.counts },
+])
 
 // The "Pairs verified" column only applies to the live source.
 const activeColumns = computed(() =>
   source.value === 'live'
-    ? [...columns, { key: 'live_pairs_verified', label: t.pairsVerified }]
-    : columns
+    ? [...columns.value, { key: 'live_pairs_verified', label: t.value.pairsVerified }]
+    : columns.value
 )
 
 const sortKey = ref('contribution_id')
 const sortDir = ref('asc')
 
-const liveContributionsCount = computed(
-  () => rows.value.filter((r) => r.n_comments > 0).length
-)
-
-const livePartiallyVerifiedCount = computed(() =>
-  rows.value.reduce((sum, r) => sum + (r.live_comments_partially_verified || 0), 0)
+// The backend-provided note is English, so only show it in English mode; in
+// German, always use the translated caveat. English behaviour is unchanged.
+const displayNote = computed(() =>
+  lang.value === 'en' ? (note.value || t.value.descriptiveNote) : t.value.descriptiveNote
 )
 
 function fmt(value) {
-  return formatShare(value, t)
+  return formatShare(value, t.value)
 }
 
-// The signed gap between vote and comment favor shares, in percentage points.
+// The signed gap between the comment favor share and the thumbs-up share (favor minus thumbs), in percentage points.
+// This direction (favor minus vote) deliberately matches the stakeholder slides and the pre-registered vote-ratio analysis, so don't flip it on its own.
 function difference(row) {
   if (
     row.thumbs_up_share === null ||
@@ -187,14 +190,20 @@ function difference(row) {
   ) {
     return null
   }
-  return (row.thumbs_up_share - row.comment_favor_share) * 100
+  return (row.comment_favor_share - row.thumbs_up_share) * 100
 }
 
+// Format the difference with the locale's own sign glyphs. toFixed() always emits
+// an ASCII hyphen "-", but German shows the minus as U+2212 (via diffMinus), so we
+// strip the hyphen and re-prepend the locale minus; positives get the locale plus.
 function fmtDiff(row) {
   const d = difference(row)
-  if (d === null) return t.na
-  const sign = d > 0 ? '+' : ''
-  return `${sign}${d.toFixed(0)} pp`
+  if (d === null) return t.value.na
+  const s = d.toFixed(0)
+  if (s.startsWith('-')) {
+    return `${t.value.diffMinus}${s.slice(1)}${t.value.diffSuffix}`
+  }
+  return `${d > 0 ? t.value.diffPlus : ''}${s}${t.value.diffSuffix}`
 }
 
 function sortValue(row, key) {
@@ -235,6 +244,9 @@ async function loadOverview() {
   error.value = false
   try {
     const params = { source: source.value }
+    // Inert while source is pinned to 'gold': these branches only fire for the
+    // live/model sources, which the UI no longer offers. Kept so re-enabling the
+    // selectors later needs no change here.
     if (source.value === 'model') params.model = model.value
     if (source.value === 'live' && evaluator.value) params.evaluator = evaluator.value
     rows.value = await getVotesStanceOverview(params)
@@ -249,12 +261,11 @@ async function loadOverview() {
 onMounted(async () => {
   try {
     const info = await getVotesStanceSnapshotInfo()
-    availableModels.value = info.available_models || []
-    evaluators.value = info.evaluators || []
     snapshotUtc.value = info.snapshot_utc || ''
     note.value = info.note || ''
-    source.value = info.default_source || 'gold'
-    model.value = info.default_model || availableModels.value[0] || ''
+    // Hand labels only: the scatter and table always use the gold source, and
+    // the source/model/evaluator selectors are intentionally not shown.
+    source.value = 'gold'
   } catch {
     error.value = true
   }
@@ -267,6 +278,14 @@ watch([source, model, evaluator], loadOverview)
 </script>
 
 <style scoped>
+.vs-langbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-4);
+}
+.vs-intro {
+  margin-bottom: var(--space-4);
+}
 .vs-note {
   margin-bottom: var(--space-4);
 }
@@ -283,6 +302,9 @@ watch([source, model, evaluator], loadOverview)
   gap: var(--space-4);
 }
 .vs-controls__hint {
+  margin: var(--space-3) 0 0;
+}
+.vs-controls__help {
   margin: var(--space-3) 0 0;
 }
 .vs-field {
@@ -354,5 +376,23 @@ watch([source, model, evaluator], loadOverview)
 .vs-counts {
   color: var(--color-text-secondary);
   white-space: nowrap;
+}
+.vs-help {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+.vs-help__summary {
+  cursor: pointer;
+  user-select: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+.vs-help__summary:hover {
+  color: var(--color-text-primary);
+}
+.vs-help > :not(summary) {
+  margin: var(--space-3) 0 0;
 }
 </style>
