@@ -31,7 +31,8 @@
             :text="contribution.contribution_content"
             :key-messages="goldKeyMessages"
             :active-id="activeKeyMessageId"
-            @activate="activeKeyMessageId = $event"
+            :pin-origin="pinOrigin"
+            @activate="onTextActivate"
           />
         </template>
         <HhText v-else tag="p" variant="body" class="contribution-text">
@@ -87,7 +88,8 @@
         :contribution-id="contributionId"
         :key-messages="goldKeyMessages"
         :active-id="activeKeyMessageId"
-        @activate="activeKeyMessageId = $event"
+        :pin-origin="pinOrigin"
+        @activate="onPanelActivate"
       />
 
       <!-- Contribution Progress Bar -->
@@ -869,6 +871,26 @@ const keyMessages = ref([])
 // Separate from `keyMessages` above, which holds the MODEL key messages.
 const goldKeyMessages = ref([])
 const activeKeyMessageId = ref(null)
+// Which side pinned the active key message: 'text' (highlighted passage) or
+// 'panel' (stance-panel row), or null when nothing is pinned. The cross-scroll
+// is one-directional per origin: a pin from the text scrolls the panel row into
+// view, a pin from the panel scrolls the passage into view, and neither scrolls
+// its own element. Without this, both children would scroll on every activeId
+// change and the panel's scroll (mounted second) would always win.
+const pinOrigin = ref(null)
+
+// Separate activate handlers tag the pin with its origin (and clear it on
+// unpin), so each child can decide whether this change is the "other side"
+// pinning (scroll) or its own pin (do not scroll).
+function onTextActivate(id) {
+  activeKeyMessageId.value = id
+  pinOrigin.value = id === null || id === undefined ? null : 'text'
+}
+function onPanelActivate(id) {
+  activeKeyMessageId.value = id
+  pinOrigin.value = id === null || id === undefined ? null : 'panel'
+}
+
 const expandedKm = ref(null)
 const expandedAddedKm = ref(null)  // NEW: Track expanded added key message
 

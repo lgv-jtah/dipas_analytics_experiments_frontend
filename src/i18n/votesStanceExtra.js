@@ -84,6 +84,9 @@ export const votesStanceExtraStrings = {
   kmInFavor: 'In favor',
   kmAgainst: 'Against',
   kmNeutral: 'Neutral',
+  // Shown in the highlight popover only when a key message has mixed-stance
+  // comments (count > 0); the gold key-message rows usually omit it.
+  kmMixed: 'mixed',
   kmShowComments: 'Show the comments behind these counts',
   kmNoComments: 'No comments for this group.',
   kmPanelEmpty: 'No hand-labelled key messages for this idea.',
@@ -184,6 +187,7 @@ export const votesStanceExtraStringsDe = {
   kmInFavor: 'Zustimmend',
   kmAgainst: 'Ablehnend',
   kmNeutral: 'Neutral',
+  kmMixed: 'gemischt',
   kmShowComments: 'Kommentare hinter diesen Zahlen anzeigen',
   kmNoComments: 'Keine Kommentare in dieser Gruppe.',
   kmPanelEmpty: 'Für diesen Beitrag gibt es keine handmarkierten Kernaussagen.',

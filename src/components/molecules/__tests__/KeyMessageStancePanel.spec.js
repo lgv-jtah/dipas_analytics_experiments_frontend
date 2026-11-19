@@ -65,14 +65,32 @@ describe('KeyMessageStancePanel (parent-driven)', () => {
     expect(wrapper.find('.kmsp__swatch--favor').exists()).toBe(true)
   })
 
-  it('emits activate on hover, leave and click (toggle)', async () => {
+  it('exposes each row as a button with aria-pressed reflecting the active id', () => {
+    const wrapper = mountPanel({ keyMessages: [row({ id: 5 })], activeId: 5 })
+    const item = wrapper.find('.kmsp__item')
+    expect(item.attributes('role')).toBe('button')
+    expect(item.attributes('aria-pressed')).toBe('true')
+    const inactive = mountPanel({ keyMessages: [row({ id: 5 })], activeId: null })
+    expect(inactive.find('.kmsp__item').attributes('aria-pressed')).toBe('false')
+  })
+
+  it('does NOT emit activate on hover or focus (pin is click/keys only)', async () => {
     const wrapper = mountPanel({ keyMessages: [row({ id: 3 })], activeId: null })
     const item = wrapper.find('.kmsp__item')
     await item.trigger('mouseenter')
     await item.trigger('mouseleave')
+    await item.trigger('focus')
+    await item.trigger('blur')
+    expect(wrapper.emitted('activate')).toBeUndefined()
+  })
+
+  it('emits activate on click, Enter and Space (toggle)', async () => {
+    const wrapper = mountPanel({ keyMessages: [row({ id: 3 })], activeId: null })
+    const item = wrapper.find('.kmsp__item')
     await item.trigger('click')
-    const events = wrapper.emitted('activate').map((e) => e[0])
-    expect(events).toEqual([3, null, 3])
+    await item.trigger('keydown.enter')
+    await item.trigger('keydown.space')
+    expect(wrapper.emitted('activate').map((e) => e[0])).toEqual([3, 3, 3])
   })
 
   it('clears the active key message when clicking it again', async () => {
@@ -84,6 +102,32 @@ describe('KeyMessageStancePanel (parent-driven)', () => {
   it('marks the active row', () => {
     const wrapper = mountPanel({ keyMessages: [row({ id: 5 })], activeId: 5 })
     expect(wrapper.find('.kmsp__item').classes()).toContain('kmsp__item--active')
+  })
+
+  it('scrolls the active row into view with auto behaviour under reduced motion', async () => {
+    const original = window.matchMedia
+    window.matchMedia = vi.fn(() => ({ matches: true }))
+    try {
+      const wrapper = mountPanel({ keyMessages: [row({ id: 5 })], activeId: null })
+      const el = wrapper.find('.kmsp__item').element
+      el.scrollIntoView = vi.fn()
+      // Only a text-originated pin scrolls the row.
+      await wrapper.setProps({ activeId: 5, pinOrigin: 'text' })
+      expect(el.scrollIntoView).toHaveBeenCalledWith({
+        behavior: 'auto',
+        block: 'nearest',
+      })
+    } finally {
+      window.matchMedia = original
+    }
+  })
+
+  it('does NOT scroll the row when the pin originated here (panel)', async () => {
+    const wrapper = mountPanel({ keyMessages: [row({ id: 5 })], activeId: null })
+    const el = wrapper.find('.kmsp__item').element
+    el.scrollIntoView = vi.fn()
+    await wrapper.setProps({ activeId: 5, pinOrigin: 'panel' })
+    expect(el.scrollIntoView).not.toHaveBeenCalled()
   })
 
   it('shows the "passage not found" note when a key message has no span', () => {

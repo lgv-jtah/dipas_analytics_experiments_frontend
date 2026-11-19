@@ -5,11 +5,15 @@
   behind it. A "too few comments" badge marks key messages with fewer than three
   comments that take a clear stance.
 
-  The panel links two ways with the highlighted contribution text: hovering,
-  focusing or clicking a key-message row emits `activate` with that key message's
-  id (and clears it on leave/blur), and the row whose id matches `activeId` is
-  emphasised and scrolled into view. A key message whose source passage was not
-  located in the text shows a short "passage not found" note instead of a swatch.
+  The panel links with the highlighted contribution text by PINNING, not hover:
+  clicking (or Enter/Space on) a key-message row emits `activate` to toggle that
+  key message as the page-level active one, and clicking the active row again
+  clears it. Each row is exposed as a toggle button (role="button" +
+  aria-pressed) so assistive tech announces the pinned state. The row whose id
+  matches `activeId` is emphasised, and scrolled into view only when the pin came
+  from the text side (see `pinOrigin`). A key message whose source passage was
+  not located in the text shows a short "passage not found" note instead of a
+  swatch.
 
   The panel can either be driven by its parent (via the `keyMessages`/`activeId`
   props) or fetch its own gold key messages when used standalone (the fallback).
@@ -38,11 +42,9 @@
         class="kmsp__item"
         :class="{ 'kmsp__item--active': km.id === activeId }"
         :ref="(el) => setRowRef(km.id, el)"
+        role="button"
         tabindex="0"
-        @mouseenter="emit('activate', km.id)"
-        @mouseleave="emit('activate', null)"
-        @focus="emit('activate', km.id)"
-        @blur="emit('activate', null)"
+        :aria-pressed="km.id === activeId ? 'true' : 'false'"
         @click="toggle(km.id)"
         @keydown.enter.prevent="toggle(km.id)"
         @keydown.space.prevent="toggle(km.id)"
@@ -92,6 +94,7 @@ import HhText from '../atoms/HhText.vue'
 import { getContributionKeyMessages } from '../../services/api.js'
 import { useVotesStanceStrings } from '../../composables/useVotesStanceLang.js'
 import { getVotesStanceExtraStrings } from '../../i18n/votesStanceExtra.js'
+import { prefersReducedMotion } from '../../utils/motion.js'
 
 const props = defineProps({
   contributionId: { type: Number, required: true },
@@ -100,6 +103,10 @@ const props = defineProps({
   keyMessages: { type: Array, default: null },
   // The active key-message id, or null.
   activeId: { type: [Number, String], default: null },
+  // Which side pinned the active key message: 'text' or 'panel' (or null). The
+  // panel scrolls the active row into view ONLY for a text-originated pin, so a
+  // pin made here never scrolls its own row (and the text only scrolls for 'panel').
+  pinOrigin: { type: String, default: null },
 })
 
 const emit = defineEmits(['activate'])
@@ -166,10 +173,16 @@ watch(
   () => props.activeId,
   (id) => {
     if (id === null || id === undefined) return
+    // Only scroll the row for a pin that originated in the highlighted text; a
+    // pin made here must not scroll its own row.
+    if (props.pinOrigin !== 'text') return
     const el = rowEls.get(id)
     // Guard scrollIntoView: it is absent in some test (jsdom) environments.
     if (el && typeof el.scrollIntoView === 'function') {
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      el.scrollIntoView({
+        behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+        block: 'nearest',
+      })
     }
   }
 )
