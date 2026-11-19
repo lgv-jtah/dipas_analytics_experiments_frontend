@@ -21,9 +21,20 @@
         </template>
       </PageHeader>
 
-      <!-- Contribution text -->
+      <!-- Contribution text. When gold key messages are available, each one's
+           located source passages are highlighted and coloured by its comment
+           stance; otherwise the plain text is shown. -->
       <HhCard variant="subtle" class="contribution-card">
-        <HhText tag="p" variant="body" class="contribution-text">
+        <template v-if="goldKeyMessages.length">
+          <KeyMessageHighlightLegend />
+          <HighlightedContributionText
+            :text="contribution.contribution_content"
+            :key-messages="goldKeyMessages"
+            :active-id="activeKeyMessageId"
+            @activate="activeKeyMessageId = $event"
+          />
+        </template>
+        <HhText v-else tag="p" variant="body" class="contribution-text">
           {{ contribution.contribution_content }}
         </HhText>
       </HhCard>
@@ -69,8 +80,15 @@
       </HhCard>
 
       <!-- Hand-labelled key messages: per-key-message gold agreement/disagreement
-           (separate from the model key-message list below). Gold labels only. -->
-      <KeyMessageStancePanel :contribution-id="contributionId" />
+           (separate from the model key-message list below). Gold labels only.
+           Driven by the lifted gold key messages so hovering the text and the
+           panel link two ways. -->
+      <KeyMessageStancePanel
+        :contribution-id="contributionId"
+        :key-messages="goldKeyMessages"
+        :active-id="activeKeyMessageId"
+        @activate="activeKeyMessageId = $event"
+      />
 
       <!-- Contribution Progress Bar -->
       <div v-if="totalItemsCount > 0" class="contribution-progress">
@@ -816,10 +834,13 @@ import HhVerdictPicker from '../components/atoms/HhVerdictPicker.vue'
 import HhTextarea from '../components/atoms/HhTextarea.vue'
 import VoteStanceBars from '../components/molecules/VoteStanceBars.vue'
 import KeyMessageStancePanel from '../components/molecules/KeyMessageStancePanel.vue'
+import HighlightedContributionText from '../components/molecules/HighlightedContributionText.vue'
+import KeyMessageHighlightLegend from '../components/molecules/KeyMessageHighlightLegend.vue'
 import LanguageToggle from '../components/molecules/LanguageToggle.vue'
 import {
   getContribution,
   getKeyMessages,
+  getContributionKeyMessages,
   getStances,
   submitKeyMessageEvaluation,
   submitStanceEvaluation as apiSubmitStance,
@@ -843,6 +864,11 @@ const loading = ref(true)
 const error = ref(false)
 const contribution = ref(null)
 const keyMessages = ref([])
+// Gold (hand-labelled) key messages for this contribution, each given a stable
+// id (its index) so the highlighted text and the stance panel can link two ways.
+// Separate from `keyMessages` above, which holds the MODEL key messages.
+const goldKeyMessages = ref([])
+const activeKeyMessageId = ref(null)
 const expandedKm = ref(null)
 const expandedAddedKm = ref(null)  // NEW: Track expanded added key message
 
@@ -1437,6 +1463,16 @@ onMounted(async () => {
       stancesLoading: false,
       stancesError: false,
     }))
+
+    // Gold key messages for the highlights + stance panel. A non-gold
+    // contribution (404) or an export without the artifact simply yields none,
+    // so the text falls back to plain and the panel hides.
+    try {
+      const gold = await getContributionKeyMessages(contributionId)
+      goldKeyMessages.value = gold.map((km, i) => ({ ...km, id: i }))
+    } catch {
+      goldKeyMessages.value = []
+    }
 
     // Initialise key-message evaluation state
     for (const km of kms) {

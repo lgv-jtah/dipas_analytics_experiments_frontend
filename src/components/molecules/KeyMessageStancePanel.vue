@@ -5,6 +5,15 @@
   behind it. A "too few comments" badge marks key messages with fewer than three
   comments that take a clear stance.
 
+  The panel links two ways with the highlighted contribution text: hovering,
+  focusing or clicking a key-message row emits `activate` with that key message's
+  id (and clears it on leave/blur), and the row whose id matches `activeId` is
+  emphasised and scrolled into view. A key message whose source passage was not
+  located in the text shows a short "passage not found" note instead of a swatch.
+
+  The panel can either be driven by its parent (via the `keyMessages`/`activeId`
+  props) or fetch its own gold key messages when used standalone (the fallback).
+
   This is deliberately separate from the model key-message evaluation list on the
   same page: the two lists can word key messages differently and have different
   counts, so they are never merged. Citizen comment text is rendered with text
@@ -23,11 +32,37 @@
     </div>
 
     <ul v-else class="kmsp__list">
-      <li v-for="(km, i) in rows" :key="i" class="kmsp__item">
+      <li
+        v-for="km in rows"
+        :key="km.id"
+        class="kmsp__item"
+        :class="{ 'kmsp__item--active': km.id === activeId }"
+        :ref="(el) => setRowRef(km.id, el)"
+        tabindex="0"
+        @mouseenter="emit('activate', km.id)"
+        @mouseleave="emit('activate', null)"
+        @focus="emit('activate', km.id)"
+        @blur="emit('activate', null)"
+        @click="toggle(km.id)"
+        @keydown.enter.prevent="toggle(km.id)"
+        @keydown.space.prevent="toggle(km.id)"
+      >
         <div class="kmsp__head">
+          <span
+            v-if="hasHighlights && km.highlight_stance"
+            class="kmsp__swatch"
+            :class="`kmsp__swatch--${km.highlight_stance}`"
+            aria-hidden="true"
+          ></span>
           <HhText tag="span" variant="body" class="kmsp__km">{{ km.key_message }}</HhText>
           <span v-if="km.too_few" class="kmsp__badge">{{ x.kmTooFew }}</span>
         </div>
+
+        <!-- Highlight available for this contribution but this key message's
+             source passage was not located in the text. -->
+        <p v-if="showNoPassage(km)" class="kmsp__no-passage">
+          <HhText tag="span" variant="caption" color="secondary">{{ x.kmNoPassage }}</HhText>
+        </p>
 
         <div class="kmsp__groups">
           <details v-for="group in groupsFor(km)" :key="group.key" class="kmsp__group">
@@ -51,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import HhCard from './HhCard.vue'
 import HhText from '../atoms/HhText.vue'
 import { getContributionKeyMessages } from '../../services/api.js'
@@ -60,17 +95,49 @@ import { getVotesStanceExtraStrings } from '../../i18n/votesStanceExtra.js'
 
 const props = defineProps({
   contributionId: { type: Number, required: true },
+  // When provided (non-null), the panel is driven by the parent and does NOT
+  // fetch its own data. Each entry is expected to carry a stable `id`.
+  keyMessages: { type: Array, default: null },
+  // The active key-message id, or null.
+  activeId: { type: [Number, String], default: null },
 })
+
+const emit = defineEmits(['activate'])
 
 const { lang } = useVotesStanceStrings()
 const x = computed(() => getVotesStanceExtraStrings(lang.value))
 
-const loading = ref(true)
-const rows = ref([])
+// Parent-driven mode (keyMessages provided) has nothing to load; only the
+// self-fetch fallback starts in a loading state.
+const loading = ref(props.keyMessages == null)
+const fetchedRows = ref([])
+
+// Attach a stable id (falling back to the list index) to every row, so parent
+// and self-fetch modes both have one to key hover/active linking on.
+function withIds(list) {
+  return (list || []).map((km, i) => ({ ...km, id: km.id ?? i }))
+}
+
+// Rows come from the parent when it passes them, otherwise from the self-fetch.
+const rows = computed(() =>
+  props.keyMessages != null ? withIds(props.keyMessages) : fetchedRows.value
+)
+
+// Highlights are available when at least one row carries a spans_source (the
+// backend attaches it whenever the span artifact is present).
+const hasHighlights = computed(() =>
+  rows.value.some((km) => km.spans_source != null)
+)
 
 // Hide the whole panel for non-gold contributions (no rows) or on error, so the
 // contribution page stays clean; show it while loading and once rows exist.
 const visible = computed(() => loading.value || rows.value.length > 0)
+
+// A row has "no located passage" when highlights exist for the contribution but
+// this key message produced no span.
+function showNoPassage(km) {
+  return km.spans_source != null && (!km.spans || km.spans.length === 0)
+}
 
 // Build the three expandable groups (favor / against / neutral) for one key
 // message, each with its comment list.
@@ -82,12 +149,42 @@ function groupsFor(km) {
   ]
 }
 
+// Click / Enter / Space toggles the active key message.
+function toggle(id) {
+  emit('activate', props.activeId === id ? null : id)
+}
+
+// Per-row element refs, so an activation elsewhere can scroll the matching row
+// into view.
+const rowEls = new Map()
+function setRowRef(id, el) {
+  if (el) rowEls.set(id, el)
+  else rowEls.delete(id)
+}
+
+watch(
+  () => props.activeId,
+  (id) => {
+    if (id === null || id === undefined) return
+    const el = rowEls.get(id)
+    // Guard scrollIntoView: it is absent in some test (jsdom) environments.
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }
+)
+
 onMounted(async () => {
+  // Parent-driven mode: nothing to fetch.
+  if (props.keyMessages != null) {
+    loading.value = false
+    return
+  }
   try {
-    rows.value = await getContributionKeyMessages(props.contributionId)
+    fetchedRows.value = withIds(await getContributionKeyMessages(props.contributionId))
   } catch {
     // A non-gold contribution (404) or a backend without the artifact: hide.
-    rows.value = []
+    fetchedRows.value = []
   } finally {
     loading.value = false
   }
@@ -111,15 +208,34 @@ onMounted(async () => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.kmsp__item:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 1px;
+}
+.kmsp__item--active {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
 }
 .kmsp__head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
   margin-bottom: var(--space-3);
 }
-.kmsp__km { font-weight: var(--font-weight-semibold); }
+.kmsp__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: none;
+}
+.kmsp__swatch--favor { background: #1A7A4A; }
+.kmsp__swatch--against { background: var(--color-accent); }
+.kmsp__swatch--disputed { background: #C77700; }
+.kmsp__swatch--neutral { background: var(--color-hh-gray-300); }
+.kmsp__km { font-weight: var(--font-weight-semibold); flex: 1; min-width: 0; }
 .kmsp__badge {
   flex: none;
   padding: 2px 8px;
@@ -130,6 +246,7 @@ onMounted(async () => {
   font-weight: var(--font-weight-semibold);
   white-space: nowrap;
 }
+.kmsp__no-passage { margin: 0 0 var(--space-3); }
 .kmsp__groups {
   display: flex;
   flex-wrap: wrap;

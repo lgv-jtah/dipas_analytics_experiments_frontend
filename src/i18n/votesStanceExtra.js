@@ -87,6 +87,24 @@ export const votesStanceExtraStrings = {
   kmShowComments: 'Show the comments behind these counts',
   kmNoComments: 'No comments for this group.',
   kmPanelEmpty: 'No hand-labelled key messages for this idea.',
+  // Shown on a key-message row whose source passage could not be located in the
+  // contribution text (so it has no highlight).
+  kmNoPassage: 'Passage not found in the text',
+
+  // -- Key-message highlights in the contribution text --
+  legendTitle: 'What the colours mean',
+  legendFavor: 'Mostly agreed with',
+  legendAgainst: 'Mostly disagreed with',
+  legendDisputed: 'Split for and against',
+  legendNeutral: 'No clear stance',
+  // Provenance note under the legend.
+  highlightProvenanceNote:
+    'The highlighted passages come from the extraction model, not from the hand ' +
+    'labels, so they can be imprecise.',
+  // Aria/tooltip for a highlighted passage. {km} is the key message text and
+  // {favor}/{against}/{neutral} are its comment counts.
+  highlightAria:
+    'Key message: {km} ({favor} in favor, {against} against, {neutral} neutral)',
 
   // Shared states.
   loading: 'Loading…',
@@ -169,6 +187,18 @@ export const votesStanceExtraStringsDe = {
   kmShowComments: 'Kommentare hinter diesen Zahlen anzeigen',
   kmNoComments: 'Keine Kommentare in dieser Gruppe.',
   kmPanelEmpty: 'Für diesen Beitrag gibt es keine handmarkierten Kernaussagen.',
+  kmNoPassage: 'Textstelle im Beitrag nicht gefunden',
+
+  legendTitle: 'Was die Farben bedeuten',
+  legendFavor: 'Überwiegend Zustimmung',
+  legendAgainst: 'Überwiegend Ablehnung',
+  legendDisputed: 'Geteilt, dafür und dagegen',
+  legendNeutral: 'Keine klare Haltung',
+  highlightProvenanceNote:
+    'Die hervorgehobenen Textstellen stammen aus dem Extraktionsmodell, nicht ' +
+    'aus den Handmarkierungen, und können daher ungenau sein.',
+  highlightAria:
+    'Kernaussage: {km} ({favor} zustimmend, {against} ablehnend, {neutral} neutral)',
 
   loading: 'Wird geladen…',
   error: 'Diese Ansicht konnte nicht geladen werden.',
