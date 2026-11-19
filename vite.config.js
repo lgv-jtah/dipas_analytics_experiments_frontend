@@ -18,6 +18,8 @@ export default defineConfig({
       include: [
         'src/i18n/votesStanceExtra.js',
         'src/components/molecules/VotesStanceSummary.vue',
+        'src/components/molecules/ContributionCardsSection.vue',
+        'src/pages/VotesStance.vue',
       ],
     },
   },

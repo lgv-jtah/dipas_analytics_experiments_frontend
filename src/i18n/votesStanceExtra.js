@@ -58,6 +58,21 @@ export const votesStanceExtraStrings = {
   overviewEmpty: 'No key messages have enough comments with a clear stance yet.',
   openContribution: 'Open idea #{id}',
 
+  // -- Per-contribution cards section (single contributions, side by side) --
+  cardsTitle: 'Single contributions, side by side',
+  cardsIntro:
+    "Each card shows one contribution's thumbs and comment stances. Single " +
+    'contributions with few comments are illustrations, not evidence.',
+  sortLabel: 'Sort by',
+  sortGap: 'Gap (comments minus thumbs)',
+  sortThumbs: 'Number of thumbs',
+  sortId: 'Contribution ID',
+  showAllLabel:
+    'Also show contributions without thumbs or without a clear comment',
+  // {shown} and {total} are filled in by the component.
+  cardsShowing: 'Showing {shown} of {total} contributions.',
+  cardsEmpty: 'No contributions to show.',
+
   // -- Per-key-message panel on the contribution page --
   kmPanelTitle: 'Hand-labelled key messages',
   kmPanelIntro:
@@ -126,6 +141,20 @@ export const votesStanceExtraStringsDe = {
   overviewEmpty:
     'Noch keine Kernaussage hat genug Kommentare mit einer klaren Haltung.',
   openContribution: 'Beitrag #{id} öffnen',
+
+  cardsTitle: 'Einzelne Beiträge im Vergleich',
+  cardsIntro:
+    'Jede Karte zeigt die Daumen und die Haltung der Kommentare eines ' +
+    'Beitrags. Einzelne Beiträge mit wenigen Kommentaren sind nur ' +
+    'Veranschaulichungen, kein Beleg.',
+  sortLabel: 'Sortieren nach',
+  sortGap: 'Abstand (Kommentare minus Daumen)',
+  sortThumbs: 'Anzahl Daumen',
+  sortId: 'Beitrags-Nr.',
+  showAllLabel:
+    'Auch Beiträge ohne Daumen oder ohne eindeutigen Kommentar anzeigen',
+  cardsShowing: 'Angezeigt: {shown} von {total} Beiträgen.',
+  cardsEmpty: 'Keine Beiträge vorhanden.',
 
   kmPanelTitle: 'Handmarkierte Kernaussagen',
   kmPanelIntro:
@@ -243,4 +272,22 @@ export function formatSignedPp(value, lang, { digits = 1 } = {}) {
   const minus = lang === 'de' ? '−' : '-'
   const sign = value < 0 ? minus : '+'
   return `${sign}${magnitude}${suffix}`
+}
+
+/**
+ * Build a short, single-line title from a contribution's raw content. Collapses
+ * all runs of whitespace to single spaces and trims; if the result is at most
+ * `maxLen` characters it is returned unchanged, otherwise it is cut to `maxLen`,
+ * backtracked to the last word boundary when there is one, and suffixed with an
+ * ellipsis. Returns '' for non-string input (e.g. null/undefined), so a missing
+ * contribution content never renders as "null".
+ */
+export function makeTitle(content, maxLen = 90) {
+  if (typeof content !== 'string') return ''
+  const collapsed = content.replace(/\s+/g, ' ').trim()
+  if (collapsed.length <= maxLen) return collapsed
+  const cut = collapsed.slice(0, maxLen)
+  const lastSpace = cut.lastIndexOf(' ')
+  const base = lastSpace > 0 ? cut.slice(0, lastSpace) : cut
+  return `${base}…`
 }
