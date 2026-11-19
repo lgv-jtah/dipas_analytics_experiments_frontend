@@ -37,6 +37,14 @@
     <!-- Overall summary (gold only): pre-registered headline + shared block -->
     <VotesStanceSummary />
 
+    <!-- Per-contribution cards: one thumbs bar + one comment-stance bar each -->
+    <ContributionCardsSection
+      v-if="!loading && !error"
+      :rows="rows"
+      :titles="titles"
+      @select="goToContribution"
+    />
+
     <!-- Most agreed-with / most rejected gold key messages -->
     <KeyMessageOverview />
 
@@ -124,11 +132,14 @@ import StanceScatter from '../components/molecules/StanceScatter.vue'
 import LanguageToggle from '../components/molecules/LanguageToggle.vue'
 import VotesStanceSummary from '../components/molecules/VotesStanceSummary.vue'
 import KeyMessageOverview from '../components/molecules/KeyMessageOverview.vue'
+import ContributionCardsSection from '../components/molecules/ContributionCardsSection.vue'
 import {
   getVotesStanceSnapshotInfo,
   getVotesStanceOverview,
+  getContributions,
 } from '../services/api.js'
 import { formatShare } from '../i18n/votesStance.js'
+import { makeTitle } from '../i18n/votesStanceExtra.js'
 import { useVotesStanceStrings } from '../composables/useVotesStanceLang.js'
 
 // `t` is a computed ref of the active-language strings: use t.value in <script>,
@@ -139,6 +150,10 @@ const router = useRouter()
 const loading = ref(true)
 const error = ref(false)
 const rows = ref([])
+// Short per-contribution titles, keyed by String(contribution_id). Populated from
+// the /contributions list; a failure here leaves it empty (cards fall back to the
+// id alone) and must NOT turn into a page-level error.
+const titles = ref({})
 
 // Hand labels only: source is pinned to 'gold' and never changes (the selectors
 // were removed). model and evaluator stay inert placeholders so the live/model
@@ -239,6 +254,27 @@ function goToContribution(id) {
   router.push(`/evaluation/contributions/${id}`)
 }
 
+/**
+ * Load the contribution list and build the String(id) -> short title map used by
+ * the cards. Best-effort enrichment: any failure is swallowed and leaves `titles`
+ * empty, so the cards still render with the contribution id alone and the page
+ * does not surface an error. Called in parallel with loadOverview from onMounted.
+ *
+ * @returns {Promise<void>}
+ */
+async function loadTitles() {
+  try {
+    const list = await getContributions()
+    const map = {}
+    for (const c of list) {
+      map[String(c.contribution_id)] = makeTitle(c.contribution_content)
+    }
+    titles.value = map
+  } catch {
+    titles.value = {}
+  }
+}
+
 async function loadOverview() {
   loading.value = true
   error.value = false
@@ -269,7 +305,10 @@ onMounted(async () => {
   } catch {
     error.value = true
   }
-  await loadOverview()
+  // Load the overview and the contribution titles in parallel. The titles loader
+  // never rejects (it swallows its own errors), so the overview still governs the
+  // page's loading/error state on its own.
+  await Promise.all([loadOverview(), loadTitles()])
 })
 
 // Reload whenever a control changes; model only matters for source=model and
