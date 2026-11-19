@@ -40,6 +40,12 @@ export const votesStanceExtraStrings = {
     '{thumbs} ideas have thumbs, {comment} have a clear comment, {both} have both.',
   pooledLabel: 'Pooled (bigger ideas count more)',
   unweightedLabel: 'Unweighted (every idea counts once)',
+  // Titles for the two stacked bars drawn over the shared set only.
+  sharedThumbsBarTitle: 'Thumbs (shared ideas)',
+  sharedCommentsBarTitle: 'Comment stances (shared ideas)',
+  // {neutral} neutral and {mixed} mixed comments are not counted in the share.
+  sharedNeutralMixed:
+    '{neutral} neutral and {mixed} mixed comments are not counted in the share.',
 
   // -- Key-message overview (two lists) --
   overviewTitle: 'Key messages people agreed or disagreed with most',
@@ -105,6 +111,10 @@ export const votesStanceExtraStringsDe = {
     '{both} haben beides.',
   pooledLabel: 'Gepoolt (größere Beiträge zählen mehr)',
   unweightedLabel: 'Ungewichtet (jeder Beitrag zählt einmal)',
+  sharedThumbsBarTitle: 'Daumen (gemeinsame Beiträge)',
+  sharedCommentsBarTitle: 'Haltung der Kommentare (gemeinsame Beiträge)',
+  sharedNeutralMixed:
+    '{neutral} neutrale und {mixed} gemischte Kommentare zählen nicht in den Anteil.',
 
   overviewTitle: 'Kernaussagen mit der meisten Zustimmung und Ablehnung',
   mostAgreed: 'Größte Zustimmung',

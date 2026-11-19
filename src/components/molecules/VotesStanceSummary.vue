@@ -4,7 +4,10 @@
 
   * the PRE-REGISTERED headline (a thumbs bar and a comment-stance bar, the
     no-clear-stance line, and the gap with its 90% range), and
-  * a visibly separated, NOT pre-registered shared-contributions block.
+  * a visibly separated, NOT pre-registered shared-contributions block. That
+    block now also draws its own two stacked bars (thumbs and comment stances)
+    over the shared set only, mirroring the headline bars, plus a caption for
+    the neutral/mixed comments that the favour share leaves out.
 
   Every number comes from the backend (/votes-stance/summary); nothing is
   hard-coded here. Numbers are formatted per language (German decimal comma and
@@ -103,6 +106,62 @@
         <HhText tag="p" variant="caption" color="secondary" class="vss__line">
           {{ sharedCountsText }}
         </HhText>
+
+        <!-- Two stacked bars over the shared set only, mirroring the headline -->
+        <template v-if="sharedCounts">
+          <!-- Shared thumbs bar -->
+          <div class="vss__block">
+            <div class="vss__row">
+              <HhText tag="span" variant="label">{{ x.sharedThumbsBarTitle }}</HhText>
+              <HhText tag="span" variant="caption" color="secondary">
+                {{ fmtPct(sharedCounts.vote_share) }} {{ x.thumbsUp }}
+              </HhText>
+            </div>
+            <div class="vss__bar" role="img"
+                 :aria-label="`${x.thumbsUp} ${sharedCounts.vote_pro}, ${x.thumbsDown} ${sharedCounts.vote_contra}`">
+              <div class="vss__seg vss__seg--pro" :style="{ width: pct(sharedCounts.vote_pro, sharedThumbsTotal) }">
+                <span v-if="wide(sharedCounts.vote_pro, sharedThumbsTotal)" class="vss__seg-label">{{ sharedCounts.vote_pro }}</span>
+              </div>
+              <div class="vss__seg vss__seg--contra" :style="{ width: pct(sharedCounts.vote_contra, sharedThumbsTotal) }">
+                <span v-if="wide(sharedCounts.vote_contra, sharedThumbsTotal)" class="vss__seg-label">{{ sharedCounts.vote_contra }}</span>
+              </div>
+            </div>
+            <div class="vss__legend">
+              <span class="vss__key vss__key--pro">{{ x.thumbsUp }} ({{ sharedCounts.vote_pro }})</span>
+              <span class="vss__key vss__key--contra">{{ x.thumbsDown }} ({{ sharedCounts.vote_contra }})</span>
+              <span class="vss__total">n = {{ sharedThumbsTotal }}</span>
+            </div>
+          </div>
+
+          <!-- Shared comment-stance bar (directional comments only) -->
+          <div class="vss__block">
+            <div class="vss__row">
+              <HhText tag="span" variant="label">{{ x.sharedCommentsBarTitle }}</HhText>
+              <HhText tag="span" variant="caption" color="secondary">
+                {{ fmtPct(sharedCounts.favor_share) }} {{ x.inFavor }}
+              </HhText>
+            </div>
+            <div class="vss__bar" role="img"
+                 :aria-label="`${x.inFavor} ${sharedCounts.favor}, ${x.against} ${sharedCounts.against}`">
+              <div class="vss__seg vss__seg--favor" :style="{ width: pct(sharedCounts.favor, sharedDirectionalTotal) }">
+                <span v-if="wide(sharedCounts.favor, sharedDirectionalTotal)" class="vss__seg-label">{{ sharedCounts.favor }}</span>
+              </div>
+              <div class="vss__seg vss__seg--against" :style="{ width: pct(sharedCounts.against, sharedDirectionalTotal) }">
+                <span v-if="wide(sharedCounts.against, sharedDirectionalTotal)" class="vss__seg-label">{{ sharedCounts.against }}</span>
+              </div>
+            </div>
+            <div class="vss__legend">
+              <span class="vss__key vss__key--favor">{{ x.inFavor }} ({{ sharedCounts.favor }})</span>
+              <span class="vss__key vss__key--against">{{ x.against }} ({{ sharedCounts.against }})</span>
+              <span class="vss__total">n = {{ sharedDirectionalTotal }}</span>
+            </div>
+          </div>
+
+          <HhText tag="p" variant="caption" color="secondary" class="vss__line">
+            {{ sharedNeutralMixedText }}
+          </HhText>
+        </template>
+
         <ul class="vss__shared-list">
           <li>
             <strong>{{ x.pooledLabel }}:</strong>
@@ -168,6 +227,25 @@ const sharedCountsText = computed(() => {
     thumbs: shared.value.thumbs_side_contributions,
     comment: shared.value.comment_side_contributions,
     both: shared.value.both_sides_contributions,
+  })
+})
+
+// The derived pooled counts the two shared bars are drawn from. Null for an
+// older export whose shared block predates this feature; the bars degrade away.
+const sharedCounts = computed(() => shared.value?.counts ?? null)
+// Totals behind the two shared bars, mirroring thumbsTotal/directionalTotal.
+const sharedThumbsTotal = computed(() =>
+  sharedCounts.value ? sharedCounts.value.vote_pro + sharedCounts.value.vote_contra : 0
+)
+const sharedDirectionalTotal = computed(() =>
+  sharedCounts.value ? sharedCounts.value.favor + sharedCounts.value.against : 0
+)
+
+const sharedNeutralMixedText = computed(() => {
+  if (!sharedCounts.value) return ''
+  return interpolate(x.value.sharedNeutralMixed, {
+    neutral: sharedCounts.value.neutral,
+    mixed: sharedCounts.value.mixed,
   })
 })
 
