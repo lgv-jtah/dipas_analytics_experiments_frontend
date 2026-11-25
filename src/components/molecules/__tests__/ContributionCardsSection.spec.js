@@ -1,8 +1,10 @@
 // Tests for ContributionCardsSection: the per-contribution cards on the Votes vs.
-// Stance page. The language composable is mocked to pin German (so the real
-// German strings and VoteStanceBars aria-labels are exercised); HhCard and HhText
-// are stubbed to pass their slots through, while the REAL VoteStanceBars is
-// mounted so each card's bars and aria-labels are asserted end to end.
+// Stance page. The rows now arrive already restricted to the shared contributions
+// (the backend filters them), so the component does no filtering of its own: there
+// is no show-all toggle and no not-pre-registered badge. The language composable is
+// mocked to pin German (so the real German strings and VoteStanceBars aria-labels
+// are exercised); HhCard and HhText are stubbed to pass their slots through, while
+// the REAL VoteStanceBars is mounted so each card's bars are asserted end to end.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 
@@ -27,9 +29,9 @@ const stubs = {
   HhText: { template: '<span class="hhtext"><slot /></span>' },
 }
 
-// Rows cover: a 22159-like strong negative gap, a positive gap, a milder negative
-// gap, a non-shared row with no votes (null thumbs share), and a non-shared row
-// with votes but no clear comment (null favor share).
+// Three shared rows (each has both a thumbs vote and a clear comment), as the
+// backend now hands them: a strong negative gap, a positive gap and a milder
+// negative gap. The component shows all rows it is given.
 function makeRows() {
   return [
     {
@@ -59,26 +61,6 @@ function makeRows() {
       votes_contra: 1,
       counts: { favor: 3, against: 2, neutral: 0, mixed: 0 },
     },
-    {
-      // Non-shared: no votes at all, so thumbs_up_share is null.
-      contribution_id: 200,
-      thumbs_up_share: null,
-      comment_favor_share: 1.0,
-      n_comments: 2,
-      votes_pro: 0,
-      votes_contra: 0,
-      counts: { favor: 2, against: 0, neutral: 0, mixed: 0 },
-    },
-    {
-      // Non-shared: has votes but no clear comment, so comment_favor_share is null.
-      contribution_id: 300,
-      thumbs_up_share: 1.0,
-      comment_favor_share: null,
-      n_comments: 2,
-      votes_pro: 10,
-      votes_contra: 0,
-      counts: { favor: 0, against: 0, neutral: 2, mixed: 0 },
-    },
   ]
 }
 
@@ -105,47 +87,75 @@ beforeEach(() => {
 })
 
 describe('ContributionCardsSection chrome', () => {
-  it('shows the German title, the not-pre-registered badge and the intro', () => {
+  it('shows the German title and the intro, and no badge', () => {
     const wrapper = mountSection()
     const text = wrapper.text()
     expect(text).toContain('Einzelne Beiträge im Vergleich')
-    expect(text).toContain('nicht vorab festgelegt')
     expect(text).toContain('Jede Karte zeigt die Daumen')
+    // The not-pre-registered badge is gone.
+    expect(text).not.toContain('nicht vorab festgelegt')
+  })
+
+  it('has no show-all checkbox', () => {
+    const wrapper = mountSection()
+    expect(wrapper.find('input[type="checkbox"]').exists()).toBe(false)
   })
 })
 
-describe('default shared-only view', () => {
-  it('shows only the shared contributions with a count', () => {
+describe('rendering and count', () => {
+  it('renders every row it is given with a plain count', () => {
     const wrapper = mountSection()
-    // 3 shared rows (22159, 100, 7); 200 and 300 are filtered out.
     expect(wrapper.findAll('.cc__card')).toHaveLength(3)
-    expect(wrapper.text()).toContain('Angezeigt: 3 von 5 Beiträgen.')
-    const ids = cardIds(wrapper)
-    expect(ids).not.toContain('#200')
-    expect(ids).not.toContain('#300')
+    expect(wrapper.text()).toContain('Angezeigt: 3 Beiträge.')
   })
 
+  it('does not filter rows by vote/comment presence', () => {
+    // Even a row with no votes is shown: filtering is the backend's job now.
+    const rows = [
+      ...makeRows(),
+      {
+        contribution_id: 200,
+        thumbs_up_share: null,
+        comment_favor_share: 1.0,
+        n_comments: 2,
+        votes_pro: 0,
+        votes_contra: 0,
+        counts: { favor: 2, against: 0, neutral: 0, mixed: 0 },
+      },
+    ]
+    const wrapper = mountSection({ rows })
+    expect(wrapper.findAll('.cc__card')).toHaveLength(4)
+    expect(wrapper.text()).toContain('Angezeigt: 4 Beiträge.')
+    expect(cardIds(wrapper)).toContain('#200')
+  })
+})
+
+describe('sorting', () => {
   it('sorts by gap ascending (most negative first)', () => {
     const wrapper = mountSection()
     // gaps: 22159 ≈ -0.59, 7 = -0.20, 100 = +0.50
     expect(cardIds(wrapper)).toEqual(['#22159', '#7', '#100'])
   })
-})
 
-describe('show-all toggle', () => {
-  it('reveals the non-shared contributions and keeps nulls last', async () => {
-    const wrapper = mountSection()
-    await wrapper.find('input[type="checkbox"]').setValue(true)
-    expect(wrapper.findAll('.cc__card')).toHaveLength(5)
-    expect(wrapper.text()).toContain('Angezeigt: 5 von 5 Beiträgen.')
-    // Shared rows keep gap order, the two null-gap rows come last.
+  it('keeps null-gap rows last under the gap sort', () => {
+    const rows = [
+      ...makeRows(),
+      {
+        contribution_id: 300,
+        thumbs_up_share: 1.0,
+        comment_favor_share: null,
+        n_comments: 2,
+        votes_pro: 10,
+        votes_contra: 0,
+        counts: { favor: 0, against: 0, neutral: 2, mixed: 0 },
+      },
+    ]
+    const wrapper = mountSection({ rows })
     const ids = cardIds(wrapper)
     expect(ids.slice(0, 3)).toEqual(['#22159', '#7', '#100'])
-    expect(ids.slice(3).sort()).toEqual(['#200', '#300'])
+    expect(ids[3]).toBe('#300')
   })
-})
 
-describe('other sort keys', () => {
   it('sorts by number of thumbs descending', async () => {
     const wrapper = mountSection()
     await wrapper.find('select').setValue('thumbs')
@@ -164,11 +174,9 @@ describe('card header', () => {
   it('shows the id and title, and falls back to id only when no title', () => {
     const wrapper = mountSection()
     const cards = wrapper.findAll('.cc__card')
-    // First card (22159) has a title.
     expect(cards[0].text()).toContain('#22159')
     expect(cards[0].find('.cc__card-title').exists()).toBe(true)
     expect(cards[0].text()).toContain('Mehr Sitzbänke entlang des Weges')
-    // Card for #7 has no title in the map -> no title element.
     const seven = cards.find((c) => c.find('.cc__card-id').text() === '#7')
     expect(seven.find('.cc__card-title').exists()).toBe(false)
   })
@@ -219,13 +227,6 @@ describe('empty state', () => {
     const wrapper = mountSection({ rows: [] })
     expect(wrapper.findAll('.cc__card')).toHaveLength(0)
     expect(wrapper.text()).toContain('Keine Beiträge vorhanden.')
-    expect(wrapper.text()).toContain('Angezeigt: 0 von 0 Beiträgen.')
-  })
-
-  it('is empty by default when no row is shared', () => {
-    const nonShared = makeRows().filter((r) => [200, 300].includes(r.contribution_id))
-    const wrapper = mountSection({ rows: nonShared })
-    expect(wrapper.findAll('.cc__card')).toHaveLength(0)
-    expect(wrapper.text()).toContain('Keine Beiträge vorhanden.')
+    expect(wrapper.text()).toContain('Angezeigt: 0 Beiträge.')
   })
 })

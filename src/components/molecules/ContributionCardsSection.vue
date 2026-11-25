@@ -4,24 +4,21 @@
   contribution's thumbs bar and comment-stance bar, under a clickable header that
   opens the contribution's detail page.
 
-  By default only the "shared" contributions are shown (those with at least one
-  thumbs vote AND at least one clear comment); a checkbox reveals all of them.
-  The list is sortable by the comments-minus-thumbs gap, by the number of thumbs,
-  or by contribution id. All chrome strings come from votesStanceExtra.js; the
-  bar strings come from votesStance.js, cloned with an empty descriptiveNote so
-  each card is not stamped with the per-contribution "descriptive only" footer
-  (that caveat already lives once at the top of the page).
+  The rows are already restricted to the shared contributions by the backend
+  (the whole page runs on that set), so no filtering happens here. The list is
+  sortable by the comments-minus-thumbs gap, by the number of thumbs, or by
+  contribution id. All chrome strings come from votesStanceExtra.js; the bar
+  strings come from votesStance.js, cloned with an empty descriptiveNote so each
+  card is not stamped with the per-contribution "descriptive only" footer (that
+  caveat already lives once at the top of the page).
 -->
 <template>
   <HhCard :title="x.cardsTitle" class="cc">
-    <div class="cc__head">
-      <span class="cc__badge">{{ x.notPreRegistered }}</span>
-    </div>
     <HhText tag="p" variant="caption" color="secondary" class="cc__intro">
       {{ x.cardsIntro }}
     </HhText>
 
-    <!-- Controls: sort selector + show-all toggle -->
+    <!-- Controls: sort selector -->
     <div class="cc__controls">
       <label class="cc__field">
         <span class="cc__field-label">{{ x.sortLabel }}</span>
@@ -31,14 +28,10 @@
           <option value="id">{{ x.sortId }}</option>
         </select>
       </label>
-      <label class="cc__check">
-        <input type="checkbox" v-model="showAll" />
-        <span>{{ x.showAllLabel }}</span>
-      </label>
     </div>
 
     <HhText tag="p" variant="caption" color="secondary" class="cc__showing">
-      {{ showingText }}
+      {{ countText }}
     </HhText>
 
     <!-- Empty state -->
@@ -102,8 +95,8 @@ import {
 } from '../../i18n/votesStanceExtra.js'
 
 const props = defineProps({
-  // Full set of overview rows (all 115 gold contributions). Not filtered here by
-  // any page-level control; filtering to the shared set happens in this component.
+  // The overview rows to show, already restricted to the shared contributions by
+  // the backend. They are only sorted here, never filtered.
   rows: { type: Array, required: true },
   // Map of String(contribution_id) -> short title. Missing ids render id-only.
   titles: { type: Object, default: () => ({}) },
@@ -123,24 +116,6 @@ const x = computed(() => getVotesStanceExtraStrings(lang.value))
 const barStrings = computed(() => ({ ...t.value, descriptiveNote: '' }))
 
 const sortKey = ref('gap')
-const showAll = ref(false)
-
-/**
- * Whether a row belongs to the "shared" set shown by default. A contribution is
- * shared when it has at least one thumbs vote AND at least one clear
- * (favor/against) comment — the only rows for which both bars are meaningful.
- * This is the single source of truth for that filter; the "show all" checkbox
- * simply bypasses it.
- *
- * @param {object} row - One overview row.
- * @returns {boolean} True when the row has both a thumbs vote and a clear comment.
- */
-function isShared(row) {
-  return (
-    row.votes_pro + row.votes_contra > 0 &&
-    row.counts.favor + row.counts.against > 0
-  )
-}
 
 /**
  * The comments-minus-thumbs gap for a row, as a 0..1 fraction. Returning null for
@@ -194,11 +169,10 @@ function openLabel(id) {
   return interpolate(x.value.openContribution, { id })
 }
 
-// The rows actually rendered: the shared set (or all rows when "show all" is on),
-// copied before sorting so the parent's `rows` prop is never mutated in place.
+// The rows actually rendered: all rows the parent passed (already the shared
+// set), copied before sorting so the parent's `rows` prop is never mutated.
 const visibleRows = computed(() => {
-  const filtered = showAll.value ? props.rows : props.rows.filter(isShared)
-  const copy = [...filtered]
+  const copy = [...props.rows]
   if (sortKey.value === 'gap') {
     // Ascending gap (most negative first), nulls always last.
     copy.sort((a, b) => {
@@ -221,11 +195,8 @@ const visibleRows = computed(() => {
   return copy
 })
 
-const showingText = computed(() =>
-  interpolate(x.value.cardsShowing, {
-    shown: visibleRows.value.length,
-    total: props.rows.length,
-  })
+const countText = computed(() =>
+  interpolate(x.value.cardsCount, { count: visibleRows.value.length })
 )
 
 /**
@@ -242,24 +213,6 @@ function onActivate(id) {
 <style scoped>
 .cc {
   margin-bottom: var(--space-6);
-}
-.cc__head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-2);
-}
-/* Mirrors the .vss__badge style from VotesStanceSummary.vue. */
-.cc__badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  background: var(--color-hh-navy-mid);
-  color: var(--color-hh-white);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .cc__intro {
   margin: 0 0 var(--space-4);
@@ -291,13 +244,6 @@ function onActivate(id) {
   background: var(--color-surface);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
-}
-.cc__check {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
 }
 .cc__showing {
   margin: 0 0 var(--space-4);

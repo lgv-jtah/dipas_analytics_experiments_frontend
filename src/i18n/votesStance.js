@@ -3,9 +3,8 @@
 // is overlaid on top of it by getVotesStanceStrings('de'), so any key missing from
 // German falls back to the English value rather than appearing blank.
 //
-// The German terms follow the stakeholder deck. In particular, descriptiveNote in
-// German is a translation of the verbatim English caveat below (which the backend
-// also returns), so the two descriptiveNote values must be kept in sync whenever
+// The German terms follow the stakeholder deck. descriptiveNote in German is a
+// translation of the English caveat below, so keep the two in sync whenever
 // either one changes.
 // Keep keys stable; only translate the values.
 
@@ -25,18 +24,14 @@ export const votesStanceStrings = {
     'that says whether it agrees or disagrees. Here you can see whether the ' +
     'thumbs and the comments tell the same story.',
 
-  // The verbatim descriptive-only caveat. This exact wording is shared with the
-  // backend (the API returns the same string), so it must stay separate from the
-  // descriptiveNotePlain restatement below and must not be reworded on its own.
-  // The German descriptiveNote is a translation of this exact wording; keep both in sync.
+  // The descriptive-only caveat. Keep the English and German wording in sync.
   descriptiveNote:
-    'These per-contribution figures are descriptive only and are not part of ' +
-    'the pre-registered vote-ratio test.',
+    'These per-contribution figures are descriptive only: they put the numbers ' +
+    'side by side and are not a statistical test.',
   // A plain-language restatement of the descriptive-only caveat.
   descriptiveNotePlain:
     'In plain words: this page only shows the numbers side by side. It cannot ' +
-    'prove whether thumbs and comments really match. That question was looked ' +
-    'at separately, in a carefully planned test across all ideas together.',
+    'prove whether thumbs and comments really match.',
   snapshotPrefix: 'Vote snapshot taken at',
 
   // Source selector
@@ -206,7 +201,7 @@ export const votesStanceStrings = {
 }
 
 // German translation. The terms follow the stakeholder deck. descriptiveNote here
-// is a translation of the verbatim English caveat above, so keep the two in sync.
+// is a translation of the English caveat above, so keep the two in sync.
 export const votesStanceStringsDe = {
   navLabel: 'Daumen und Kommentare',
   pageTitle: 'Daumen und Kommentare im Vergleich',
@@ -223,13 +218,11 @@ export const votesStanceStringsDe = {
     'ob die Daumen und die Kommentare dasselbe aussagen.',
 
   descriptiveNote:
-    'Diese Zahlen je Beitrag sind nur beschreibend und gehören nicht zur vorab ' +
-    'festgelegten Prüfung des Verhältnisses von Daumen und Kommentaren.',
+    'Diese Zahlen je Beitrag sind nur beschreibend: Sie stellen die Zahlen ' +
+    'nebeneinander und sind kein statistischer Test.',
   descriptiveNotePlain:
     'Einfach gesagt: Diese Seite stellt die Zahlen nur nebeneinander. Sie kann ' +
-    'nicht beweisen, ob Daumen und Kommentare wirklich zusammenpassen. Diese ' +
-    'Frage wurde getrennt untersucht, in einem sorgfältig geplanten Test über ' +
-    'alle Beiträge zusammen.',
+    'nicht beweisen, ob Daumen und Kommentare wirklich zusammenpassen.',
   snapshotPrefix: 'Stand der Daumen',
 
   sourceLabel: 'Markierungen der Kommentare',

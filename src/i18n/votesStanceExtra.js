@@ -1,16 +1,19 @@
-// Extra user-facing strings for the "Votes vs. Stance" additions: the overall
-// summary block, the shared-contributions block and the per-key-message views.
+// Extra user-facing strings for the "Votes vs. Stance" additions: the headline
+// summary block and the per-key-message views. The whole page runs on the shared
+// contributions only (those with both a thumbs vote and a clearly agreeing or
+// disagreeing comment).
 // Mirrors the pattern in votesStance.js: English (votesStanceExtraStrings) is the
 // canonical set and German (votesStanceExtraStringsDe) is overlaid on top of it by
 // getVotesStanceExtraStrings('de'), so any key missing from German falls back to
 // the English value rather than appearing blank. Keep keys stable; translate values.
 
 export const votesStanceExtraStrings = {
-  // -- Overall summary block --
-  summaryTitle: 'Thumbs vs. comment stance, overall',
+  // -- Headline summary block (shared contributions, hand labels only) --
+  summaryTitle: 'Thumbs vs. comment stance',
   summaryIntro:
-    'Across all ideas together, this compares how people voted with how the ' +
-    'comments were labelled. These overall figures were planned in advance.',
+    'A comparison of the thumbs with the stances of the comments, across all ' +
+    'ideas that have at least one thumbs vote and at least one clearly agreeing ' +
+    'or disagreeing comment.',
   thumbsBarTitle: 'Thumbs',
   commentsBarTitle: 'Comment stances',
   thumbsUp: 'Thumbs up',
@@ -23,29 +26,22 @@ export const votesStanceExtraStrings = {
     '{count} of {total} comments have no clear stance ({neutral} neutral, {mixed} mixed).',
   gapLabel: 'Gap (comments minus thumbs)',
   rangeLabel: '90% range',
-  // Plain statement that equivalence is not shown and a difference is not proven.
-  equivalenceNote:
-    'This does not show that the two sides are equivalent, and it does not ' +
-    'prove that they differ either.',
-
-  // -- Shared-contributions block (not pre-registered) --
-  notPreRegistered: 'not pre-registered',
-  sharedTitle: 'Only ideas that have both thumbs and clear comments',
-  sharedIntro:
-    'This narrower view keeps only the ideas that have both at least one ' +
-    'thumbs vote and at least one comment with a clear stance. It was not ' +
-    'planned in advance, so read it as extra context.',
-  // {thumbs} ideas with thumbs, {comment} with a clear comment, {both} with both
-  sharedCounts:
-    '{thumbs} ideas have thumbs, {comment} have a clear comment, {both} have both.',
-  pooledLabel: 'Pooled (bigger ideas count more)',
-  unweightedLabel: 'Unweighted (every idea counts once)',
-  // Titles for the two stacked bars drawn over the shared set only.
-  sharedThumbsBarTitle: 'Thumbs (shared ideas)',
-  sharedCommentsBarTitle: 'Comment stances (shared ideas)',
-  // {neutral} neutral and {mixed} mixed comments are not counted in the share.
-  sharedNeutralMixed:
-    '{neutral} neutral and {mixed} mixed comments are not counted in the share.',
+  // The secondary, every-idea-counts-once gap shown under the headline gap.
+  unweightedGapLabel: 'Unweighted gap (every idea counts once)',
+  // The three equivalence verdicts, keyed off equivalence.verdict from the API.
+  // Each states the ±10 pp margin outcome; the undecided one also makes clear
+  // that the result shows neither equivalence nor a difference.
+  equivalenceEquivalent:
+    'At an equivalence margin of ±10 percentage points the two sides are ' +
+    'equivalent: the 90% range lies entirely within ±10 percentage points.',
+  equivalenceNotEquivalent:
+    'At an equivalence margin of ±10 percentage points the two sides are not ' +
+    'equivalent: the 90% range lies entirely outside ±10 percentage points on ' +
+    'one side.',
+  equivalenceUndecided:
+    'At an equivalence margin of ±10 percentage points the result is undecided: ' +
+    'the 90% range does not lie entirely within ±10 percentage points. This ' +
+    'shows neither that the two sides are equivalent nor that they differ.',
 
   // -- Key-message overview (two lists) --
   overviewTitle: 'Key messages people agreed or disagreed with most',
@@ -67,10 +63,8 @@ export const votesStanceExtraStrings = {
   sortGap: 'Gap (comments minus thumbs)',
   sortThumbs: 'Number of thumbs',
   sortId: 'Contribution ID',
-  showAllLabel:
-    'Also show contributions without thumbs or without a clear comment',
-  // {shown} and {total} are filled in by the component.
-  cardsShowing: 'Showing {shown} of {total} contributions.',
+  // {count} is filled in by the component (how many cards are shown).
+  cardsCount: 'Showing {count} contributions.',
   cardsEmpty: 'No contributions to show.',
 
   // -- Per-key-message panel on the contribution page --
@@ -117,10 +111,11 @@ export const votesStanceExtraStrings = {
 
 // German translation. descriptiveNote-style wording follows the stakeholder deck.
 export const votesStanceExtraStringsDe = {
-  summaryTitle: 'Daumen und Kommentar-Haltung insgesamt',
+  summaryTitle: 'Daumen und Kommentar-Haltung',
   summaryIntro:
-    'Über alle Beiträge zusammen wird hier verglichen, wie abgestimmt wurde und ' +
-    'wie die Kommentare markiert wurden. Diese Gesamtzahlen wurden vorab festgelegt.',
+    'Vergleich der Daumen mit den Haltungen der Kommentare, über alle Beiträge, ' +
+    'die mindestens einen Daumen und mindestens einen klar zustimmenden oder ' +
+    'ablehnenden Kommentar haben.',
   thumbsBarTitle: 'Daumen',
   commentsBarTitle: 'Haltung der Kommentare',
   thumbsUp: 'Daumen hoch',
@@ -132,25 +127,20 @@ export const votesStanceExtraStringsDe = {
     '{count} von {total} Kommentaren ohne klare Haltung ({neutral} neutral, {mixed} gemischt).',
   gapLabel: 'Abstand (Kommentare minus Daumen)',
   rangeLabel: '90%-Bereich',
-  equivalenceNote:
-    'Das zeigt nicht, dass beide Seiten gleichwertig sind, und es beweist auch ' +
-    'nicht, dass sie sich unterscheiden.',
-
-  notPreRegistered: 'nicht vorab festgelegt',
-  sharedTitle: 'Nur Beiträge mit Daumen und eindeutigen Kommentaren',
-  sharedIntro:
-    'Diese engere Ansicht behält nur die Beiträge, die sowohl mindestens einen ' +
-    'Daumen als auch mindestens einen Kommentar mit klarer Haltung haben. Sie ' +
-    'wurde nicht vorab festgelegt und ist daher nur als Zusatz zu lesen.',
-  sharedCounts:
-    '{thumbs} Beiträge haben Daumen, {comment} haben einen eindeutigen Kommentar, ' +
-    '{both} haben beides.',
-  pooledLabel: 'Gepoolt (größere Beiträge zählen mehr)',
-  unweightedLabel: 'Ungewichtet (jeder Beitrag zählt einmal)',
-  sharedThumbsBarTitle: 'Daumen (gemeinsame Beiträge)',
-  sharedCommentsBarTitle: 'Haltung der Kommentare (gemeinsame Beiträge)',
-  sharedNeutralMixed:
-    '{neutral} neutrale und {mixed} gemischte Kommentare zählen nicht in den Anteil.',
+  unweightedGapLabel: 'Ungewichteter Abstand (jeder Beitrag zählt einmal)',
+  equivalenceEquivalent:
+    'Bei einer Äquivalenzgrenze von ±10 Prozentpunkten sind beide Seiten ' +
+    'gleichwertig: Der 90%-Bereich liegt vollständig innerhalb von ±10 ' +
+    'Prozentpunkten.',
+  equivalenceNotEquivalent:
+    'Bei einer Äquivalenzgrenze von ±10 Prozentpunkten sind beide Seiten nicht ' +
+    'gleichwertig: Der 90%-Bereich liegt auf einer Seite vollständig außerhalb ' +
+    'von ±10 Prozentpunkten.',
+  equivalenceUndecided:
+    'Bei einer Äquivalenzgrenze von ±10 Prozentpunkten ist das Ergebnis nicht ' +
+    'entschieden: Der 90%-Bereich liegt nicht vollständig innerhalb von ±10 ' +
+    'Prozentpunkten. Das zeigt weder, dass beide Seiten gleichwertig sind, noch ' +
+    'dass sie sich unterscheiden.',
 
   overviewTitle: 'Kernaussagen mit der meisten Zustimmung und Ablehnung',
   mostAgreed: 'Größte Zustimmung',
@@ -172,9 +162,7 @@ export const votesStanceExtraStringsDe = {
   sortGap: 'Abstand (Kommentare minus Daumen)',
   sortThumbs: 'Anzahl Daumen',
   sortId: 'Beitrags-Nr.',
-  showAllLabel:
-    'Auch Beiträge ohne Daumen oder ohne eindeutigen Kommentar anzeigen',
-  cardsShowing: 'Angezeigt: {shown} von {total} Beiträgen.',
+  cardsCount: 'Angezeigt: {count} Beiträge.',
   cardsEmpty: 'Keine Beiträge vorhanden.',
 
   kmPanelTitle: 'Handmarkierte Kernaussagen',

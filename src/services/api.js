@@ -81,8 +81,7 @@ export const getContributionVotesStance = (contributionId, params = {}) => {
   return request(`/contributions/${contributionId}/votes-stance${qs ? `?${qs}` : ''}`)
 }
 
-// Overall votes-vs-stance summary (gold only): the pre-registered headline plus
-// the exploratory shared-contributions block.
+// Votes-vs-stance summary (gold only): the shared-contributions headline block.
 export const getVotesStanceSummary = () =>
   request('/votes-stance/summary')
 
