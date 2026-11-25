@@ -1,7 +1,8 @@
-// Tests for the shared-bar i18n additions: the new EN/DE keys, interpolation of
-// the neutral/mixed caption, and the per-language percent formatter output. The
-// formatter assertions pin the ACTUAL Intl output (German decimal comma and a
-// space before %) rather than assuming the spacing.
+// Tests for the votes-vs-stance extra i18n strings. The page now runs on the
+// shared contributions only, so the headline keys here are the reworded intro,
+// the unweighted-gap label and the three equivalence verdict sentences. The old
+// pre-registered/shared-block keys are gone. Also covers the per-contribution
+// cards chrome, the per-language percent formatter and makeTitle.
 import { describe, it, expect } from 'vitest'
 import {
   getVotesStanceExtraStrings,
@@ -10,42 +11,58 @@ import {
   makeTitle,
 } from '../votesStanceExtra.js'
 
-describe('shared-bar i18n keys', () => {
-  it('defines the three new keys in English', () => {
+describe('headline summary i18n keys', () => {
+  it('rewords the intro with no "planned in advance" wording (EN)', () => {
     const en = getVotesStanceExtraStrings('en')
-    expect(en.sharedThumbsBarTitle).toBe('Thumbs (shared ideas)')
-    expect(en.sharedCommentsBarTitle).toBe('Comment stances (shared ideas)')
-    expect(en.sharedNeutralMixed).toContain('{neutral}')
-    expect(en.sharedNeutralMixed).toContain('{mixed}')
+    expect(en.summaryIntro).not.toContain('planned in advance')
+    expect(en.summaryIntro).toContain('at least one thumbs vote')
+    expect(en.summaryIntro).toContain('agreeing or disagreeing comment')
   })
 
-  it('translates the three new keys in German', () => {
+  it('rewords the intro with no "vorab festgelegt" wording (DE)', () => {
     const de = getVotesStanceExtraStrings('de')
-    expect(de.sharedThumbsBarTitle).toBe('Daumen (gemeinsame Beiträge)')
-    expect(de.sharedCommentsBarTitle).toBe(
-      'Haltung der Kommentare (gemeinsame Beiträge)'
-    )
+    expect(de.summaryIntro).not.toContain('vorab festgelegt')
+    expect(de.summaryIntro).toContain('über alle Beiträge')
     // German is a real translation, not the English fallback.
-    expect(de.sharedNeutralMixed).not.toBe(
-      getVotesStanceExtraStrings('en').sharedNeutralMixed
-    )
-    expect(de.sharedNeutralMixed).toContain('zählen nicht in den Anteil')
+    expect(de.summaryIntro).not.toBe(getVotesStanceExtraStrings('en').summaryIntro)
   })
-})
 
-describe('interpolate on sharedNeutralMixed', () => {
-  it('fills neutral and mixed in English', () => {
+  it('defines the unweighted-gap label in both languages', () => {
+    expect(getVotesStanceExtraStrings('en').unweightedGapLabel).toBe(
+      'Unweighted gap (every idea counts once)'
+    )
+    expect(getVotesStanceExtraStrings('de').unweightedGapLabel).toBe(
+      'Ungewichteter Abstand (jeder Beitrag zählt einmal)'
+    )
+  })
+
+  it('defines the three equivalence verdict sentences (EN)', () => {
     const en = getVotesStanceExtraStrings('en')
-    expect(interpolate(en.sharedNeutralMixed, { neutral: 44, mixed: 8 })).toBe(
-      '44 neutral and 8 mixed comments are not counted in the share.'
-    )
+    expect(en.equivalenceEquivalent).toContain('equivalent')
+    expect(en.equivalenceNotEquivalent).toContain('not')
+    expect(en.equivalenceUndecided).toContain('undecided')
+    // The undecided one also says it shows neither equivalence nor a difference.
+    expect(en.equivalenceUndecided).toContain('neither')
   })
 
-  it('fills neutral and mixed in German', () => {
+  it('translates the three equivalence verdict sentences (DE)', () => {
     const de = getVotesStanceExtraStrings('de')
-    expect(interpolate(de.sharedNeutralMixed, { neutral: 44, mixed: 8 })).toBe(
-      '44 neutrale und 8 gemischte Kommentare zählen nicht in den Anteil.'
+    expect(de.equivalenceUndecided).toContain(
+      'Bei einer Äquivalenzgrenze von ±10 Prozentpunkten ist das Ergebnis nicht entschieden'
     )
+    expect(de.equivalenceUndecided).toContain('weder')
+    expect(de.equivalenceEquivalent).toContain('gleichwertig')
+    expect(de.equivalenceNotEquivalent).toContain('nicht gleichwertig')
+  })
+
+  it('no longer defines the removed pre-registered / shared-block keys', () => {
+    const en = getVotesStanceExtraStrings('en')
+    expect(en.notPreRegistered).toBeUndefined()
+    expect(en.sharedTitle).toBeUndefined()
+    expect(en.sharedNeutralMixed).toBeUndefined()
+    expect(en.pooledLabel).toBeUndefined()
+    expect(en.showAllLabel).toBeUndefined()
+    expect(en.cardsShowing).toBeUndefined()
   })
 })
 
@@ -73,8 +90,7 @@ describe('per-contribution cards i18n keys', () => {
     expect(en.sortGap).toBe('Gap (comments minus thumbs)')
     expect(en.sortThumbs).toBe('Number of thumbs')
     expect(en.sortId).toBe('Contribution ID')
-    expect(en.cardsShowing).toContain('{shown}')
-    expect(en.cardsShowing).toContain('{total}')
+    expect(en.cardsCount).toContain('{count}')
     expect(en.cardsEmpty).toBe('No contributions to show.')
   })
 
@@ -83,16 +99,15 @@ describe('per-contribution cards i18n keys', () => {
     expect(de.cardsTitle).toBe('Einzelne Beiträge im Vergleich')
     expect(de.sortLabel).toBe('Sortieren nach')
     expect(de.sortId).toBe('Beitrags-Nr.')
-    // German is a real translation, not the English fallback.
-    expect(de.cardsEmpty).not.toBe(getVotesStanceExtraStrings('en').cardsEmpty)
+    expect(de.cardsCount).toBe('Angezeigt: {count} Beiträge.')
     expect(de.cardsEmpty).toBe('Keine Beiträge vorhanden.')
   })
 
-  it('fills cardsShowing with shown and total', () => {
+  it('fills cardsCount with the count', () => {
     const en = getVotesStanceExtraStrings('en')
-    expect(interpolate(en.cardsShowing, { shown: 80, total: 115 })).toBe(
-      'Showing 80 of 115 contributions.'
-    )
+    expect(interpolate(en.cardsCount, { count: 80 })).toBe('Showing 80 contributions.')
+    const de = getVotesStanceExtraStrings('de')
+    expect(interpolate(de.cardsCount, { count: 80 })).toBe('Angezeigt: 80 Beiträge.')
   })
 })
 

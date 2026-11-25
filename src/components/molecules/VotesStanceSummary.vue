@@ -1,20 +1,20 @@
 <!--
-  VotesStanceSummary: the overall thumbs-vs-comment-stance summary shown at the
-  top of the Votes vs. Stance page. It has two parts:
+  VotesStanceSummary: the headline thumbs-vs-comment-stance summary shown at the
+  top of the Votes vs. Stance page. The whole page runs on the shared
+  contributions only (those with both a thumbs vote and a clearly agreeing or
+  disagreeing comment), so this block is the pooled picture over that set:
 
-  * the PRE-REGISTERED headline (a thumbs bar and a comment-stance bar, the
-    no-clear-stance line, and the gap with its 90% range), and
-  * a visibly separated, NOT pre-registered shared-contributions block. That
-    block now also draws its own two stacked bars (thumbs and comment stances)
-    over the shared set only, mirroring the headline bars, plus a caption for
-    the neutral/mixed comments that the favour share leaves out.
+  * a thumbs bar and a comment-stance bar (from headline.primary),
+  * the no-clear-stance line (neutral + mixed out of all comments),
+  * the gap with its 90% range, a secondary unweighted gap line, and
+  * a verdict-driven equivalence sentence (undecided / equivalent / not).
 
-  Every number comes from the backend (/votes-stance/summary); nothing is
-  hard-coded here. Numbers are formatted per language (German decimal comma and
-  the typographic minus sign). Simple two-segment bars are drawn inline rather
-  than reusing VoteStanceBars, so the summary is not stamped with the
-  per-contribution "descriptive only" caveat, which does not apply to these
-  pre-registered figures.
+  Every number comes from the backend (/votes-stance/summary -> headline);
+  nothing is hard-coded here. Numbers are formatted per language (German decimal
+  comma and the typographic minus sign). Simple two-segment bars are drawn inline
+  rather than reusing VoteStanceBars, so the summary is not stamped with the
+  per-contribution "descriptive only" caveat. The block degrades gracefully to
+  nothing when the backend has no headline (an older export).
 -->
 <template>
   <HhCard :title="x.summaryTitle" class="vss">
@@ -25,7 +25,7 @@
       <HhText variant="caption" color="accent">{{ x.error }}</HhText>
     </div>
 
-    <template v-else-if="overall">
+    <template v-else-if="headline">
       <HhText tag="p" variant="caption" color="secondary" class="vss__intro">
         {{ x.summaryIntro }}
       </HhText>
@@ -35,21 +35,21 @@
         <div class="vss__row">
           <HhText tag="span" variant="label">{{ x.thumbsBarTitle }}</HhText>
           <HhText tag="span" variant="caption" color="secondary">
-            {{ fmtPct(overall.primary.vote_share) }} {{ x.thumbsUp }}
+            {{ fmtPct(primary.vote_share) }} {{ x.thumbsUp }}
           </HhText>
         </div>
         <div class="vss__bar" role="img"
-             :aria-label="`${x.thumbsUp} ${overall.primary.vote_pro}, ${x.thumbsDown} ${overall.primary.vote_contra}`">
-          <div class="vss__seg vss__seg--pro" :style="{ width: pct(overall.primary.vote_pro, thumbsTotal) }">
-            <span v-if="wide(overall.primary.vote_pro, thumbsTotal)" class="vss__seg-label">{{ overall.primary.vote_pro }}</span>
+             :aria-label="`${x.thumbsUp} ${primary.vote_pro}, ${x.thumbsDown} ${primary.vote_contra}`">
+          <div class="vss__seg vss__seg--pro" :style="{ width: pct(primary.vote_pro, thumbsTotal) }">
+            <span v-if="wide(primary.vote_pro, thumbsTotal)" class="vss__seg-label">{{ primary.vote_pro }}</span>
           </div>
-          <div class="vss__seg vss__seg--contra" :style="{ width: pct(overall.primary.vote_contra, thumbsTotal) }">
-            <span v-if="wide(overall.primary.vote_contra, thumbsTotal)" class="vss__seg-label">{{ overall.primary.vote_contra }}</span>
+          <div class="vss__seg vss__seg--contra" :style="{ width: pct(primary.vote_contra, thumbsTotal) }">
+            <span v-if="wide(primary.vote_contra, thumbsTotal)" class="vss__seg-label">{{ primary.vote_contra }}</span>
           </div>
         </div>
         <div class="vss__legend">
-          <span class="vss__key vss__key--pro">{{ x.thumbsUp }} ({{ overall.primary.vote_pro }})</span>
-          <span class="vss__key vss__key--contra">{{ x.thumbsDown }} ({{ overall.primary.vote_contra }})</span>
+          <span class="vss__key vss__key--pro">{{ x.thumbsUp }} ({{ primary.vote_pro }})</span>
+          <span class="vss__key vss__key--contra">{{ x.thumbsDown }} ({{ primary.vote_contra }})</span>
           <span class="vss__total">n = {{ thumbsTotal }}</span>
         </div>
       </div>
@@ -59,21 +59,21 @@
         <div class="vss__row">
           <HhText tag="span" variant="label">{{ x.commentsBarTitle }}</HhText>
           <HhText tag="span" variant="caption" color="secondary">
-            {{ fmtPct(overall.primary.favor_share) }} {{ x.inFavor }}
+            {{ fmtPct(primary.favor_share) }} {{ x.inFavor }}
           </HhText>
         </div>
         <div class="vss__bar" role="img"
-             :aria-label="`${x.inFavor} ${overall.primary.favor}, ${x.against} ${overall.primary.against}`">
-          <div class="vss__seg vss__seg--favor" :style="{ width: pct(overall.primary.favor, directionalTotal) }">
-            <span v-if="wide(overall.primary.favor, directionalTotal)" class="vss__seg-label">{{ overall.primary.favor }}</span>
+             :aria-label="`${x.inFavor} ${primary.favor}, ${x.against} ${primary.against}`">
+          <div class="vss__seg vss__seg--favor" :style="{ width: pct(primary.favor, directionalTotal) }">
+            <span v-if="wide(primary.favor, directionalTotal)" class="vss__seg-label">{{ primary.favor }}</span>
           </div>
-          <div class="vss__seg vss__seg--against" :style="{ width: pct(overall.primary.against, directionalTotal) }">
-            <span v-if="wide(overall.primary.against, directionalTotal)" class="vss__seg-label">{{ overall.primary.against }}</span>
+          <div class="vss__seg vss__seg--against" :style="{ width: pct(primary.against, directionalTotal) }">
+            <span v-if="wide(primary.against, directionalTotal)" class="vss__seg-label">{{ primary.against }}</span>
           </div>
         </div>
         <div class="vss__legend">
-          <span class="vss__key vss__key--favor">{{ x.inFavor }} ({{ overall.primary.favor }})</span>
-          <span class="vss__key vss__key--against">{{ x.against }} ({{ overall.primary.against }})</span>
+          <span class="vss__key vss__key--favor">{{ x.inFavor }} ({{ primary.favor }})</span>
+          <span class="vss__key vss__key--against">{{ x.against }} ({{ primary.against }})</span>
           <span class="vss__total">n = {{ directionalTotal }}</span>
         </div>
       </div>
@@ -85,96 +85,22 @@
 
       <!-- Gap with its 90% range -->
       <HhText tag="p" variant="body" class="vss__gap">
-        {{ x.gapLabel }}: {{ fmtPp(overall.primary.difference_pp) }}
+        {{ x.gapLabel }}: {{ fmtPp(primary.difference_pp) }}
         <span class="vss__range">
-          ({{ x.rangeLabel }}: {{ fmtPp(overall.primary.ci90.low) }} … {{ fmtPp(overall.primary.ci90.high) }})
+          ({{ x.rangeLabel }}: {{ fmtPp(primary.ci90.low) }} … {{ fmtPp(primary.ci90.high) }})
         </span>
       </HhText>
+
+      <!-- Secondary, every-idea-counts-once gap -->
       <HhText tag="p" variant="caption" color="secondary" class="vss__line">
-        {{ x.equivalenceNote }}
+        {{ x.unweightedGapLabel }}: {{ fmtPp(headline.unweighted.difference_pp) }}
+        ({{ x.rangeLabel }}: {{ fmtPp(headline.unweighted.ci90.low) }} … {{ fmtPp(headline.unweighted.ci90.high) }})
       </HhText>
 
-      <!-- Visibly separate, NOT pre-registered shared-contributions block -->
-      <div v-if="shared" class="vss__shared">
-        <div class="vss__shared-head">
-          <HhText tag="span" variant="label">{{ x.sharedTitle }}</HhText>
-          <span class="vss__badge">{{ x.notPreRegistered }}</span>
-        </div>
-        <HhText tag="p" variant="caption" color="secondary" class="vss__line">
-          {{ x.sharedIntro }}
-        </HhText>
-        <HhText tag="p" variant="caption" color="secondary" class="vss__line">
-          {{ sharedCountsText }}
-        </HhText>
-
-        <!-- Two stacked bars over the shared set only, mirroring the headline -->
-        <template v-if="sharedCounts">
-          <!-- Shared thumbs bar -->
-          <div class="vss__block">
-            <div class="vss__row">
-              <HhText tag="span" variant="label">{{ x.sharedThumbsBarTitle }}</HhText>
-              <HhText tag="span" variant="caption" color="secondary">
-                {{ fmtPct(sharedCounts.vote_share) }} {{ x.thumbsUp }}
-              </HhText>
-            </div>
-            <div class="vss__bar" role="img"
-                 :aria-label="`${x.thumbsUp} ${sharedCounts.vote_pro}, ${x.thumbsDown} ${sharedCounts.vote_contra}`">
-              <div class="vss__seg vss__seg--pro" :style="{ width: pct(sharedCounts.vote_pro, sharedThumbsTotal) }">
-                <span v-if="wide(sharedCounts.vote_pro, sharedThumbsTotal)" class="vss__seg-label">{{ sharedCounts.vote_pro }}</span>
-              </div>
-              <div class="vss__seg vss__seg--contra" :style="{ width: pct(sharedCounts.vote_contra, sharedThumbsTotal) }">
-                <span v-if="wide(sharedCounts.vote_contra, sharedThumbsTotal)" class="vss__seg-label">{{ sharedCounts.vote_contra }}</span>
-              </div>
-            </div>
-            <div class="vss__legend">
-              <span class="vss__key vss__key--pro">{{ x.thumbsUp }} ({{ sharedCounts.vote_pro }})</span>
-              <span class="vss__key vss__key--contra">{{ x.thumbsDown }} ({{ sharedCounts.vote_contra }})</span>
-              <span class="vss__total">n = {{ sharedThumbsTotal }}</span>
-            </div>
-          </div>
-
-          <!-- Shared comment-stance bar (directional comments only) -->
-          <div class="vss__block">
-            <div class="vss__row">
-              <HhText tag="span" variant="label">{{ x.sharedCommentsBarTitle }}</HhText>
-              <HhText tag="span" variant="caption" color="secondary">
-                {{ fmtPct(sharedCounts.favor_share) }} {{ x.inFavor }}
-              </HhText>
-            </div>
-            <div class="vss__bar" role="img"
-                 :aria-label="`${x.inFavor} ${sharedCounts.favor}, ${x.against} ${sharedCounts.against}`">
-              <div class="vss__seg vss__seg--favor" :style="{ width: pct(sharedCounts.favor, sharedDirectionalTotal) }">
-                <span v-if="wide(sharedCounts.favor, sharedDirectionalTotal)" class="vss__seg-label">{{ sharedCounts.favor }}</span>
-              </div>
-              <div class="vss__seg vss__seg--against" :style="{ width: pct(sharedCounts.against, sharedDirectionalTotal) }">
-                <span v-if="wide(sharedCounts.against, sharedDirectionalTotal)" class="vss__seg-label">{{ sharedCounts.against }}</span>
-              </div>
-            </div>
-            <div class="vss__legend">
-              <span class="vss__key vss__key--favor">{{ x.inFavor }} ({{ sharedCounts.favor }})</span>
-              <span class="vss__key vss__key--against">{{ x.against }} ({{ sharedCounts.against }})</span>
-              <span class="vss__total">n = {{ sharedDirectionalTotal }}</span>
-            </div>
-          </div>
-
-          <HhText tag="p" variant="caption" color="secondary" class="vss__line">
-            {{ sharedNeutralMixedText }}
-          </HhText>
-        </template>
-
-        <ul class="vss__shared-list">
-          <li>
-            <strong>{{ x.pooledLabel }}:</strong>
-            {{ fmtPp(shared.pooled.difference_pp) }}
-            ({{ x.rangeLabel }}: {{ fmtPp(shared.pooled.ci90.low) }} … {{ fmtPp(shared.pooled.ci90.high) }})
-          </li>
-          <li>
-            <strong>{{ x.unweightedLabel }}:</strong>
-            {{ fmtPp(shared.unweighted.difference_pp) }}
-            ({{ x.rangeLabel }}: {{ fmtPp(shared.unweighted.ci90.low) }} … {{ fmtPp(shared.unweighted.ci90.high) }})
-          </li>
-        </ul>
-      </div>
+      <!-- Verdict-driven equivalence sentence -->
+      <HhText tag="p" variant="caption" color="secondary" class="vss__line">
+        {{ equivalenceText }}
+      </HhText>
     </template>
   </HhCard>
 </template>
@@ -198,55 +124,40 @@ const x = computed(() => getVotesStanceExtraStrings(lang.value))
 
 const loading = ref(true)
 const error = ref(false)
-const overall = ref(null)
-const shared = ref(null)
+// The shared-contributions headline block from the backend (null for an older
+// export that predates it; the whole block then degrades away).
+const headline = ref(null)
+
+// Convenience ref: the headline's primary (pooled) figures.
+const primary = computed(() => headline.value?.primary ?? null)
 
 const thumbsTotal = computed(() =>
-  overall.value ? overall.value.primary.vote_pro + overall.value.primary.vote_contra : 0
+  primary.value ? primary.value.vote_pro + primary.value.vote_contra : 0
 )
 // The comment bar shows only the directional comments (favor + against), so its
 // two segment widths stay consistent with the favor_share percentage shown.
 const directionalTotal = computed(() =>
-  overall.value ? overall.value.primary.favor + overall.value.primary.against : 0
+  primary.value ? primary.value.favor + primary.value.against : 0
 )
 
 const noClearStanceText = computed(() => {
-  if (!overall.value) return ''
-  const n = overall.value.no_clear_stance
+  if (!headline.value) return ''
+  const n = headline.value.no_clear_stance
   return interpolate(x.value.noClearStance, {
     count: n.total,
-    total: overall.value.n_comments,
+    total: headline.value.n_comments,
     neutral: n.neutral,
     mixed: n.mixed,
   })
 })
 
-const sharedCountsText = computed(() => {
-  if (!shared.value) return ''
-  return interpolate(x.value.sharedCounts, {
-    thumbs: shared.value.thumbs_side_contributions,
-    comment: shared.value.comment_side_contributions,
-    both: shared.value.both_sides_contributions,
-  })
-})
-
-// The derived pooled counts the two shared bars are drawn from. Null for an
-// older export whose shared block predates this feature; the bars degrade away.
-const sharedCounts = computed(() => shared.value?.counts ?? null)
-// Totals behind the two shared bars, mirroring thumbsTotal/directionalTotal.
-const sharedThumbsTotal = computed(() =>
-  sharedCounts.value ? sharedCounts.value.vote_pro + sharedCounts.value.vote_contra : 0
-)
-const sharedDirectionalTotal = computed(() =>
-  sharedCounts.value ? sharedCounts.value.favor + sharedCounts.value.against : 0
-)
-
-const sharedNeutralMixedText = computed(() => {
-  if (!sharedCounts.value) return ''
-  return interpolate(x.value.sharedNeutralMixed, {
-    neutral: sharedCounts.value.neutral,
-    mixed: sharedCounts.value.mixed,
-  })
+// Pick the equivalence sentence from the backend verdict. An absent or unknown
+// verdict falls back to the undecided wording (the most cautious reading).
+const equivalenceText = computed(() => {
+  const verdict = headline.value?.equivalence?.verdict
+  if (verdict === 'equivalent') return x.value.equivalenceEquivalent
+  if (verdict === 'not_equivalent') return x.value.equivalenceNotEquivalent
+  return x.value.equivalenceUndecided
 })
 
 function fmtPct(value) {
@@ -266,8 +177,7 @@ function wide(value, total) {
 onMounted(async () => {
   try {
     const data = await getVotesStanceSummary()
-    overall.value = data.overall
-    shared.value = data.shared
+    headline.value = data.headline
   } catch {
     error.value = true
   } finally {
@@ -348,35 +258,4 @@ onMounted(async () => {
 .vss__line { margin: 0 0 var(--space-2); }
 .vss__gap { margin: var(--space-2) 0; font-weight: var(--font-weight-semibold); }
 .vss__range { font-weight: normal; color: var(--color-text-secondary); }
-.vss__shared {
-  margin-top: var(--space-5);
-  padding: var(--space-4);
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-hh-gray-50);
-}
-.vss__shared-head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-2);
-}
-.vss__badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  background: var(--color-hh-navy-mid);
-  color: var(--color-hh-white);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.vss__shared-list {
-  margin: var(--space-2) 0 0;
-  padding-left: var(--space-5);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-}
-.vss__shared-list li { margin-bottom: var(--space-1); }
 </style>

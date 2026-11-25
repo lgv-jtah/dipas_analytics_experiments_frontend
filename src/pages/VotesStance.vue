@@ -34,10 +34,11 @@
       </HhText>
     </HhCard>
 
-    <!-- Overall summary (gold only): pre-registered headline + shared block -->
+    <!-- Headline summary (gold only), over the shared contributions -->
     <VotesStanceSummary />
 
-    <!-- Per-contribution cards: one thumbs bar + one comment-stance bar each -->
+    <!-- Per-contribution cards (the shared contributions from the backend): one
+         thumbs bar + one comment-stance bar each -->
     <ContributionCardsSection
       v-if="!loading && !error"
       :rows="rows"
@@ -163,7 +164,6 @@ const model = ref('')
 const evaluator = ref('')
 
 const snapshotUtc = ref('')
-const note = ref('')
 
 const columns = computed(() => [
   { key: 'contribution_id', label: t.value.table.contribution },
@@ -184,18 +184,18 @@ const activeColumns = computed(() =>
 const sortKey = ref('contribution_id')
 const sortDir = ref('asc')
 
-// The backend-provided note is English, so only show it in English mode; in
-// German, always use the translated caveat. English behaviour is unchanged.
-const displayNote = computed(() =>
-  lang.value === 'en' ? (note.value || t.value.descriptiveNote) : t.value.descriptiveNote
-)
+// The descriptive-only caveat, always from the per-language strings. (The
+// backend also returns a note, but it is deliberately not shown here: the whole
+// page is now the shared-contributions view and must not reference the earlier
+// planned test.)
+const displayNote = computed(() => t.value.descriptiveNote)
 
 function fmt(value) {
   return formatShare(value, t.value)
 }
 
 // The signed gap between the comment favor share and the thumbs-up share (favor minus thumbs), in percentage points.
-// This direction (favor minus vote) deliberately matches the stakeholder slides and the pre-registered vote-ratio analysis, so don't flip it on its own.
+// This direction (favor minus vote) deliberately matches the stakeholder slides, so don't flip it on its own.
 function difference(row) {
   if (
     row.thumbs_up_share === null ||
@@ -298,7 +298,6 @@ onMounted(async () => {
   try {
     const info = await getVotesStanceSnapshotInfo()
     snapshotUtc.value = info.snapshot_utc || ''
-    note.value = info.note || ''
     // Hand labels only: the scatter and table always use the gold source, and
     // the source/model/evaluator selectors are intentionally not shown.
     source.value = 'gold'
