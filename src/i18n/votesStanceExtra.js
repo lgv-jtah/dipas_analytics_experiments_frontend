@@ -53,6 +53,9 @@ export const votesStanceExtraStrings = {
     'listed here.',
   overviewEmpty: 'No key messages have enough comments with a clear stance yet.',
   openContribution: 'Open idea #{id}',
+  // Accessible label / tooltip for the external link to a contribution's original
+  // page on the public beteiligung.hamburg portal.
+  openOriginal: 'Open the original contribution on beteiligung.hamburg',
 
   // -- Per-contribution cards section (single contributions, side by side) --
   cardsTitle: 'Single contributions, side by side',
@@ -152,6 +155,7 @@ export const votesStanceExtraStringsDe = {
   overviewEmpty:
     'Noch keine Kernaussage hat genug Kommentare mit einer klaren Haltung.',
   openContribution: 'Beitrag #{id} öffnen',
+  openOriginal: 'Originalbeitrag auf beteiligung.hamburg öffnen',
 
   cardsTitle: 'Einzelne Beiträge im Vergleich',
   cardsIntro:

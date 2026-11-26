@@ -34,3 +34,29 @@ Hover and pin are separate interactions:
 - **Colours** follow the backend's `highlight_stance`: green = mostly agreed with (`favor`), red = mostly disagreed with (`against`), amber = split for and against (`disputed`), grey = no clear stance (`neutral`). A small legend (`KeyMessageHighlightLegend.vue`) names them and notes that the highlighted passages come from the extraction model — not the hand labels — so they can be imprecise.
 - **Overlaps and precedence.** `HighlightedContributionText` segments the text at every span boundary into non-overlapping pieces, so a stretch covered by several key messages is still one piece. Its colour is the active key message's when one covers the piece, otherwise the precedence winner among the covering key messages (`against` > `disputed` > `favor` > `neutral`). Span offsets are clamped to the text bounds and empty/inverted spans dropped, so a stale offset can never slice outside the string. The text is rendered with interpolation only (never `v-html`).
 - **No highlight.** A key message whose source passage could not be located has empty `spans`; its panel row shows a short "passage not found" note and nothing is highlighted in the text. When the export carries no span artifact at all (`spans_source` is `null`), the page falls back to plain contribution text.
+
+## Link to the original contribution
+
+Several views show a small external-link icon (↗) next to a contribution id: the `ContributionLink` atom (`src/components/atoms/ContributionLink.vue`). Clicking it opens that contribution's original page on the public [beteiligung.hamburg](https://beteiligung.hamburg) participation portal in a new tab. It appears on the contribution list and detail pages, on the Votes vs. Stance table and cards, and in the key-message overview. The icon renders **only** when a public URL is known for the id — otherwise nothing is shown — so it can be dropped in next to any id unconditionally.
+
+Because it sits inside clickable rows and cards, the link is always a **sibling** of the row's clickable element (never nested inside the `role="button"` card header — an interactive element inside another interactive element is an accessibility violation), and it stops click/keydown propagation (`@click.stop` / `@keydown.stop`) so activating the icon does not also trigger the row's navigation.
+
+### Where the URLs come from
+
+Our backend stores no proceeding id, and each DIPAS proceeding lives on its own subdomain (e.g. `jenfelder-au.beteiligung.hamburg`), so the public URL cannot be derived from a contribution id alone. Instead the id → URL pairs are kept in a static snapshot, `src/data/contributionLinks.json`, collected once from the official `link` field of the public DIPAS PDS API. Because these proceedings are closed, their links are stable and the snapshot does not need to be refreshed at runtime. `src/utils/contributionLink.js` looks an id up in that file and re-validates the URL before it is rendered, allowing only `https` links whose host is `beteiligung.hamburg` or a `*.beteiligung.hamburg` subdomain (any other scheme or host resolves to `null`).
+
+### Regenerating `src/data/contributionLinks.json`
+
+The file is a flat JSON object mapping each contribution id (as a string key) to its original URL:
+
+```json
+{ "83": "https://jenfelder-au.beteiligung.hamburg/#/contribution/83" }
+```
+
+To rebuild it, fetch each proceeding's contributions from the PDS API and map every contribution's `id` to its `link` field:
+
+```
+https://beteiligung.hamburg/drupal/dipas-pds/projects/<project>/contributions/
+```
+
+For each `<project>` (proceeding) whose contributions appear in the app, request that endpoint, then for every returned contribution add an entry `"<id>": "<link>"`. Merge the entries from all proceedings into the single JSON object and write it back to `src/data/contributionLinks.json`. Only ids actually shown in the app need to be present; unknown ids simply render no icon. (The current snapshot was taken on 2026-11-26.)

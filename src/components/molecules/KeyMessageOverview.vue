@@ -26,10 +26,15 @@
         </p>
         <ol v-else class="kmo__list">
           <li v-for="item in mostAgreed" :key="`a-${item.contribution_id}-${item.key_message}`" class="kmo__item">
+            <!-- Two sibling links per row: the RouterLink goes to our internal
+                 contribution detail page, the ContributionLink (external-link icon)
+                 opens the original contribution on beteiligung.hamburg in a new tab
+                 and renders nothing when the id has no mapped URL. -->
             <RouterLink class="kmo__link" :to="`/evaluation/contributions/${item.contribution_id}`"
                         :title="interpolate(x.openContribution, { id: item.contribution_id })">
               #{{ item.contribution_id }}
             </RouterLink>
+            <ContributionLink :contribution-id="item.contribution_id" :label="x.openOriginal" />
             <span class="kmo__km">{{ item.key_message }}</span>
             <span class="kmo__counts">{{ counts(item) }}</span>
           </li>
@@ -47,6 +52,7 @@
                         :title="interpolate(x.openContribution, { id: item.contribution_id })">
               #{{ item.contribution_id }}
             </RouterLink>
+            <ContributionLink :contribution-id="item.contribution_id" :label="x.openOriginal" />
             <span class="kmo__km">{{ item.key_message }}</span>
             <span class="kmo__counts">{{ counts(item) }}</span>
           </li>
@@ -65,6 +71,7 @@ import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import HhCard from './HhCard.vue'
 import HhText from '../atoms/HhText.vue'
+import ContributionLink from '../atoms/ContributionLink.vue'
 import { getKeyMessageOverview } from '../../services/api.js'
 import { useVotesStanceStrings } from '../../composables/useVotesStanceLang.js'
 import { getVotesStanceExtraStrings, interpolate } from '../../i18n/votesStanceExtra.js'
@@ -127,6 +134,11 @@ onMounted(async () => {
   margin-right: var(--space-2);
 }
 .kmo__link:hover { text-decoration: underline; }
+.kmo__item :deep(.contribution-link) {
+  margin-right: var(--space-2);
+  vertical-align: middle;
+  color: var(--color-text-secondary);
+}
 .kmo__km { color: var(--color-text-primary); }
 .kmo__counts {
   margin-left: var(--space-2);

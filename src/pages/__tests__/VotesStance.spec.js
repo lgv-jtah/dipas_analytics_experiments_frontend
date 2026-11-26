@@ -25,6 +25,12 @@ vi.mock('../../services/api.js', () => ({
   getContributions: vi.fn(),
 }))
 
+// Resolve every id to a valid URL so the table's external-link atom renders
+// deterministically, independent of the shipped id -> URL map.
+vi.mock('../../utils/contributionLink.js', () => ({
+  getContributionLink: (id) => `https://sub.beteiligung.hamburg/#/contribution/${id}`,
+}))
+
 // Pin English and hand the page the real string set so its template renders. The
 // refs must be real so the template auto-unwraps `t.tableHelp.title` etc.
 vi.mock('../../composables/useVotesStanceLang.js', async () => {
@@ -130,5 +136,19 @@ describe('VotesStance per-contribution cards wiring', () => {
     expect(cards.exists()).toBe(true)
     expect(cards.props('titles')).toEqual({})
     expect(cards.props('rows')).toHaveLength(2)
+  })
+
+  it('renders an original-contribution link in each table id cell', async () => {
+    const wrapper = await mountPage()
+    const links = wrapper.findAll('.vs-id-cell a.contribution-link')
+    // One row per overview entry.
+    expect(links).toHaveLength(overviewRows.length)
+    // English default label (the page passes t.openOriginal in English).
+    expect(links[0].attributes('aria-label')).toBe(
+      'Open the original contribution on beteiligung.hamburg'
+    )
+    const hrefs = links.map((l) => l.attributes('href'))
+    expect(hrefs.some((h) => h.includes('/contribution/22159'))).toBe(true)
+    expect(hrefs.some((h) => h.includes('/contribution/83'))).toBe(true)
   })
 })

@@ -18,6 +18,7 @@
           <HhButton variant="ghost" size="sm" @click="$router.push('/evaluation/contributions')">
             ← Back to list
           </HhButton>
+          <ContributionLink :contribution-id="contributionId" />
         </template>
       </PageHeader>
 
@@ -834,6 +835,7 @@ import HhBadge from '../components/atoms/HhBadge.vue'
 import HhButton from '../components/atoms/HhButton.vue'
 import HhVerdictPicker from '../components/atoms/HhVerdictPicker.vue'
 import HhTextarea from '../components/atoms/HhTextarea.vue'
+import ContributionLink from '../components/atoms/ContributionLink.vue'
 import VoteStanceBars from '../components/molecules/VoteStanceBars.vue'
 import KeyMessageStancePanel from '../components/molecules/KeyMessageStancePanel.vue'
 import HighlightedContributionText from '../components/molecules/HighlightedContributionText.vue'
