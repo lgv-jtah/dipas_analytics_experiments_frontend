@@ -20,6 +20,12 @@ vi.mock('../../../composables/useVotesStanceLang.js', async () => {
   return { useVotesStanceStrings: () => ({ lang, strings }) }
 })
 
+// Resolve every id to a valid beteiligung.hamburg URL so the external-link atom
+// renders deterministically, independent of the shipped id -> URL map.
+vi.mock('../../../utils/contributionLink.js', () => ({
+  getContributionLink: (id) => `https://sub.beteiligung.hamburg/#/contribution/${id}`,
+}))
+
 // Slot-passing stubs so rendered text is assertable; VoteStanceBars stays real.
 const stubs = {
   HhCard: {
@@ -228,5 +234,29 @@ describe('empty state', () => {
     expect(wrapper.findAll('.cc__card')).toHaveLength(0)
     expect(wrapper.text()).toContain('Keine Beiträge vorhanden.')
     expect(wrapper.text()).toContain('Angezeigt: 0 Beiträge.')
+  })
+})
+
+describe('original-contribution link', () => {
+  it('renders one external link per card as a sibling of the header', () => {
+    const wrapper = mountSection()
+    const links = wrapper.findAll('a.contribution-link')
+    expect(links).toHaveLength(3)
+    // The link is a sibling of the (interactive) header, never nested inside it.
+    expect(wrapper.find('.cc__card-head a.contribution-link').exists()).toBe(false)
+    expect(wrapper.find('.cc__card-actions a.contribution-link').exists()).toBe(true)
+  })
+
+  it('uses the German label from the extra string set', () => {
+    const wrapper = mountSection()
+    const link = wrapper.find('a.contribution-link')
+    expect(link.attributes('aria-label')).toBe('Originalbeitrag auf beteiligung.hamburg öffnen')
+    expect(link.attributes('href')).toContain('beteiligung.hamburg')
+  })
+
+  it('does not activate the card when the link is clicked', async () => {
+    const wrapper = mountSection()
+    await wrapper.find('a.contribution-link').trigger('click')
+    expect(wrapper.emitted('select')).toBeUndefined()
   })
 })

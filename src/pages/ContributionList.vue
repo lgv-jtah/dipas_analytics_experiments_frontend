@@ -61,7 +61,10 @@
                 ⚠ {{ getMissingStancesCount(contribution.contribution_id) }} need stances
               </HhBadge>
             </div>
-            <HhIcon name="arrow-right" size="sm" class="contribution-item__arrow" />
+            <div class="contribution-item__meta-right">
+              <ContributionLink :contribution-id="contribution.contribution_id" />
+              <HhIcon name="arrow-right" size="sm" class="contribution-item__arrow" />
+            </div>
           </div>
           <HhText tag="p" variant="body" class="contribution-item__text">
             {{ truncate(contribution.contribution_content, 200) }}
@@ -146,6 +149,7 @@ import PageHeader from '../components/molecules/PageHeader.vue'
 import HhText from '../components/atoms/HhText.vue'
 import HhIcon from '../components/atoms/HhIcon.vue'
 import HhBadge from '../components/atoms/HhBadge.vue'
+import ContributionLink from '../components/atoms/ContributionLink.vue'
 import { getContributions, getContributionsStats } from '../services/api.js'
 import { useEvaluator } from '../composables/useEvaluator.js'
 
@@ -322,6 +326,12 @@ onMounted(async () => {
 }
 
 .contribution-item__badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.contribution-item__meta-right {
   display: flex;
   align-items: center;
   gap: var(--space-2);

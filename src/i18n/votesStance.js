@@ -184,6 +184,10 @@ export const votesStanceStrings = {
   error: 'Could not load data. Is the backend running and the export present?',
   na: 'n/a',
 
+  // Accessible label / tooltip for the external link to a contribution's original
+  // page on the public beteiligung.hamburg portal.
+  openOriginal: 'Open the original contribution on beteiligung.hamburg',
+
   // Inline lower-case variants used mid-sentence next to a percentage.
   votesProInline: 'thumbs up',
   catFavorInline: 'in favor',
@@ -364,6 +368,8 @@ export const votesStanceStringsDe = {
     'Daten konnten nicht geladen werden. Läuft das Backend und ist der Export ' +
     'vorhanden?',
   na: 'k. A.',
+
+  openOriginal: 'Originalbeitrag auf beteiligung.hamburg öffnen',
 
   votesProInline: 'Daumen hoch',
   catFavorInline: 'zustimmend',

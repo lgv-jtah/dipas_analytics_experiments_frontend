@@ -89,7 +89,10 @@
                 class="vs-tr"
                 @click="goToContribution(row.contribution_id)"
               >
-                <td>#{{ row.contribution_id }}</td>
+                <td class="vs-id-cell">
+                  <span>#{{ row.contribution_id }}</span>
+                  <ContributionLink :contribution-id="row.contribution_id" :label="t.openOriginal" />
+                </td>
                 <td>{{ fmt(row.thumbs_up_share) }}</td>
                 <td>{{ fmt(row.comment_favor_share) }}</td>
                 <td>{{ fmtDiff(row) }}</td>
@@ -134,6 +137,7 @@ import LanguageToggle from '../components/molecules/LanguageToggle.vue'
 import VotesStanceSummary from '../components/molecules/VotesStanceSummary.vue'
 import KeyMessageOverview from '../components/molecules/KeyMessageOverview.vue'
 import ContributionCardsSection from '../components/molecules/ContributionCardsSection.vue'
+import ContributionLink from '../components/atoms/ContributionLink.vue'
 import {
   getVotesStanceSnapshotInfo,
   getVotesStanceOverview,
@@ -410,6 +414,12 @@ watch([source, model, evaluator], loadOverview)
 }
 .vs-tr:hover {
   background: var(--color-hh-gray-50);
+}
+.vs-id-cell {
+  white-space: nowrap;
+}
+.vs-id-cell span {
+  margin-right: var(--space-1);
 }
 .vs-counts {
   color: var(--color-text-secondary);

@@ -48,19 +48,28 @@
     <!-- Cards -->
     <ul v-else class="cc__list">
       <li v-for="row in visibleRows" :key="row.contribution_id" class="cc__card">
-        <div
-          class="cc__card-head"
-          role="button"
-          tabindex="0"
-          :aria-label="openLabel(row.contribution_id)"
-          @click="onActivate(row.contribution_id)"
-          @keydown.enter.prevent="onActivate(row.contribution_id)"
-          @keydown.space.prevent="onActivate(row.contribution_id)"
-        >
-          <span class="cc__card-id">#{{ row.contribution_id }}</span>
-          <span v-if="titleFor(row)" class="cc__card-title" :title="titleFor(row)">
-            {{ titleFor(row) }}
-          </span>
+        <!-- The card header (a role=button that opens the detail page) and the
+             external-link icon sit side by side. The icon is a SIBLING of the
+             header, never nested inside it, so there is no interactive element
+             inside another interactive element (an a11y violation). -->
+        <div class="cc__card-top">
+          <div
+            class="cc__card-head"
+            role="button"
+            tabindex="0"
+            :aria-label="openLabel(row.contribution_id)"
+            @click="onActivate(row.contribution_id)"
+            @keydown.enter.prevent="onActivate(row.contribution_id)"
+            @keydown.space.prevent="onActivate(row.contribution_id)"
+          >
+            <span class="cc__card-id">#{{ row.contribution_id }}</span>
+            <span v-if="titleFor(row)" class="cc__card-title" :title="titleFor(row)">
+              {{ titleFor(row) }}
+            </span>
+          </div>
+          <div class="cc__card-actions">
+            <ContributionLink :contribution-id="row.contribution_id" :label="x.openOriginal" />
+          </div>
         </div>
         <VoteStanceBars
           :votes="{
@@ -88,6 +97,7 @@ import { ref, computed } from 'vue'
 import HhCard from './HhCard.vue'
 import HhText from '../atoms/HhText.vue'
 import VoteStanceBars from './VoteStanceBars.vue'
+import ContributionLink from '../atoms/ContributionLink.vue'
 import { useVotesStanceStrings } from '../../composables/useVotesStanceLang.js'
 import {
   getVotesStanceExtraStrings,
@@ -266,15 +276,28 @@ function onActivate(id) {
   padding: var(--space-4);
   background: var(--color-surface);
 }
+.cc__card-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
 .cc__card-head {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-2);
-  margin-bottom: var(--space-3);
+  min-width: 0;
   cursor: pointer;
   border-radius: var(--radius-sm);
   transition: color var(--transition-fast);
+}
+.cc__card-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
 }
 .cc__card-head:hover {
   color: var(--color-accent);
